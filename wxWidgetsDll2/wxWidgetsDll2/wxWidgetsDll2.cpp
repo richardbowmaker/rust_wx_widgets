@@ -240,7 +240,7 @@ wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_object_ptr_t wx_frame, wx_o
 {
     reinterpret_cast<MyFrame *>(wx_frame)->Bind(
         wxEVT_COMMAND_MENU_SELECTED,
-        [wx_on_menu] (wxCommandEvent& event) { (wx_on_menu)(reinterpret_cast<wx_object_ptr_t>(&event)); },
+        [wx_frame, wx_on_menu] (wxCommandEvent& event) { (wx_on_menu)(wx_frame, reinterpret_cast<wx_object_ptr_t>(&event)); },
         wxID_ANY, 
         wxID_ANY, 
         NULL);

@@ -33,7 +33,7 @@ pub struct AppError {
 impl From<io::Error> for AppError {
     fn from(err: io::Error) -> Self {
         let s = format!("io::Error {}", err);
-        AppError { kind: AppErrorT::MyIoError(err.kind()), description: s }
+        AppError { kind: AppErrorT::MyIoError(err.kind()), description : s }
     }
 }
 
@@ -50,34 +50,3 @@ impl fmt::Display for AppError {
     }
 }
 
-pub fn errors_main() {
-
-
-    match file_open_errs1("nosuchfile.txt") {
-        Ok(_) => println!("File opened OK"),
-        Err(err) => println!("errors::main() {}", &err.description)
-    }
-
-    match file_open_errs2("nosuchfile.txt") {
-        Some(_) => println!("File opened OK"),
-        None => println!("errors::main()")
-    }
-
-
-}
-
-fn file_open_errs1(filename: &str) -> Result<File, AppError> {
-
-    let f = File::open(filename)?;
-    // let file = error_catch!(File::open(&filename), &format!("File open error {}", &filename));
-    // let my_int: i32 = "xyz".parse()?;
-
-    Ok(f)
-}
-
-fn file_open_errs2(filename: &str) -> Option<File> {
-
-    let f = File::open(filename).ok();
-
-    f
-}

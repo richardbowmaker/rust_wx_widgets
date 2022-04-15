@@ -13,7 +13,7 @@
 
 wx_object_ptr_t frame = NULL;
 
-wx_void on_menu(wx_object_ptr_t wx_command_event)
+wx_void on_menu(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_command_event)
 {
     wx_frame_close(frame);
     return 0;
