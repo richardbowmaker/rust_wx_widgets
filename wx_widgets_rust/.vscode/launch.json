@@ -1,0 +1,48 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'wx_widgets_rust'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=wx_widgets_rust",
+                    "--package=wx_widgets_rust"
+                ],
+                "filter": {
+                    "name": "wx_widgets_rust",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PATH": "${env:PATH};E:\\_Ricks\\c++\\wxWidgets\\3.1.3\\wxWidgets-3.1.3\\lib\\vc_x64_dll;D:\\projects\\rust_and_c\\wxWidgetsDll2\\x64\\Debug;D:\\projects\\rust_and_c\\wxWidgetsDll2Client\\x64\\Debug" 
+            },
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'wx_widgets_rust'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=wx_widgets_rust",
+                    "--package=wx_widgets_rust"
+                ],
+                "filter": {
+                    "name": "wx_widgets_rust",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+        }
+    ]
+}

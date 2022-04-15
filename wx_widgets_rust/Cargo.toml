@@ -1,0 +1,39 @@
+[package]
+name = "wx_widgets_rust"
+version = "0.1.0"
+edition = "2021"
+links = "wxWidgetsDll2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libloading = "0.7"
+cpp_core = "0.6.0"
+chrono = "0.4.19"
+utf16_lit = "2.0.2"
+lazy_static = "1.4.0"
+once_cell = "1.10.0"
+
+
+# [profile.releaseX]
+# inherits = "release"
+# rustc-link-search = "D:\\projects\\rust_and_c\\wxWidgetsDll2\\x64\\Debug"
+# rustc-link-search = "E:\\_Ricks\\c++\\wxWidgets\\3.1.3\\x64\\wxMSW-3.1.3_vc14x_x64_ReleaseDLL\\lib\\vc14x_x64_dll"
+
+
+# https://doc.rust-lang.org/cargo/commands/cargo-run.html
+# [target.x86_64-pc-windows-msvc.wxWidgetsDll2]
+# rustc-link-lib = "wxWidgetsDll2.lib"
+# rustc-link-search = "D:\\projects\\rust_and_c\\wxWidgetsDll2\\x64\\Debug"
+# rustc-flags = "-L D:\\projects\\rust_and_c\\wxWidgetsDll2\\x64\\Debug"
+
+
+
+
+
+
+
+
+
+
+
