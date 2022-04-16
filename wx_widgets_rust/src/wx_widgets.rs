@@ -4,6 +4,11 @@ use std::os::raw::c_char;
 use once_cell::sync::OnceCell;
 
 
+use crate::utilities;
+
+
+
+
 // string from C to rust
 // https://stackoverflow.com/questions/50437953/provide-char-argument-to-c-function-from-rust
 
@@ -29,7 +34,7 @@ extern "C" {
     fn wx_menu_bar_append(wx_menu_bar : WxObjectPtr, wx_menu : WxObjectPtr, text : *const c_char) -> WxVoid;
     fn wx_frame_set_menu_bar(wx_frame : WxObjectPtr, wx_menu_bar : WxObjectPtr) -> WxVoid;
     fn wx_frame_close(wx_frame : WxObjectPtr) -> WxVoid;
-    fn wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_frame : WxObjectPtr, wx_menu : WxObjectPtr, wx_on_menu_handler : OnMenuEvent, wx_menu_id : u64) -> WxVoid;
+    fn wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_frame : WxObjectPtr, wx_menu : WxObjectPtr, wx_on_menu_handler : OnMenuEvent, wx_menu_id : u64, WxFramePtr : u64) -> WxVoid;
 }
 
 
@@ -80,7 +85,7 @@ impl WxFrame {
 
     pub fn close(&self) {
         unsafe {
-            wx_frame_close(self.main_frame);
+            // wx_frame_close(self.main_frame);
         }
     }
 
@@ -92,14 +97,18 @@ impl WxFrame {
 
     // type OnMenuEvent = unsafe extern "C" fn(wx_command_event : WxObjectPtr) -> WxVoid;
     unsafe extern "C" fn on_menu_1(frame : u64, event : u64) -> u64 {
-        let f = frame as Debug;
-
+        if frame != 0 {
+            let a = frame as usize;
+            let f : &WxFrame = utilities::from_addr(a);
+            f.close();
+        }
         0
     }
 
     pub fn bind_menu_event_handler(&self, menu_item : &WxMenuItem, wx_menu_id: u64) {
         unsafe {
-            wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(self.main_frame, menu_item.raw(), WxFrame::on_menu_1, wx_menu_id);
+            let wxf = utilities::to_addr(&self) as u64;
+            wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(self.main_frame, menu_item.raw(), WxFrame::on_menu_1, wx_menu_id, wxf);
         }
     }
 }

@@ -3,30 +3,50 @@
 
 mod wx_widgets;
 mod errors;
+mod utilities;
+
+// #[derive(Debug)]
+// struct SS {
+//     val : i32,
+// }
+
+// impl SS {
+
+//     fn to_addr(&self) -> usize {
+//         std::ptr::addr_of!(*self) as usize
+//     }
+
+//     fn from_addr<'b>(address: usize) -> &'b Self {
+//         unsafe { &*(address as *const Self) }
+//     }
+// }
+
 
 
 fn main() {
     println!("wx widgets");
     wx_widgets::wx_widgets_main();
 
+    // let s1 = SS { val : 23 };
 
-    // let l1 = | n | do_f1(n);
-    // println!("lambda 1 {}", l1(10));
+    // let p1 : *const SS = std::ptr::addr_of!(s1);
 
-    // let l2 = | n | do_f2(n, 10);
+    // let n1 : usize = p1 as usize;
+    // let n2 = s1.to_addr();
+    // let n3 = utilities::to_addr(&s1);
 
-   
-    // println!("lambda 2 {}", l2(2));
+    // let s2 = SS::from_addr(n2);
+    // println!("We got back the value: {:?}!", s2);
 
+    // let s3 : &SS = unsafe {
+    //     utilities::from_addr(n2)
+    // };
+    // println!("We got back the value: {:?}!", s3);
+
+
+ 
+  
     return ()
-}
-
-fn do_f1(x : u64) -> u64 {
-    x * x
-}
-
-fn do_f2(x : u64, y : u64) -> u64 {
-    x * y
 }
 
 

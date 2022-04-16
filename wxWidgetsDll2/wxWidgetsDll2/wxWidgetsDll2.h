@@ -53,9 +53,9 @@ extern "C" WX_WIDGETS_DLL2_API wx_bool wx_menu_bar_append_1(wx_object_ptr_t wx_m
 extern "C" WX_WIDGETS_DLL2_API wx_void wx_frame_set_menu_bar(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu_bar);
 extern "C" WX_WIDGETS_DLL2_API wx_void wx_frame_close(wx_object_ptr_t wx_frame);
 
-typedef wx_void (* wx_frame_on_menu)(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_command_event);
+typedef wx_void (* wx_frame_on_menu)(unsigned __int64 wx_frame, wx_object_ptr_t wx_command_event);
 
-extern "C" WX_WIDGETS_DLL2_API wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu, wx_frame_on_menu wx_on_menu, unsigned __int64 wx_menu_id);
+extern "C" WX_WIDGETS_DLL2_API wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu, wx_frame_on_menu wx_on_menu, unsigned __int64 wx_menu_id, unsigned __int64 WxFrame);
 
 
 // --------------------------------------------------------------

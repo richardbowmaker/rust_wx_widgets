@@ -29,7 +29,7 @@ wx_bool on_init()
     wx_object_ptr_t menuBar = wx_create_menu_bar();
     wx_menu_bar_append(menuBar, menuFile, "&File");
     wx_frame_set_menu_bar(frame, menuBar);
-    wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(frame, menuFileExt, on_menu, wxID_EXIT_);
+    wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(frame, menuFileExt, on_menu, wxID_EXIT_, NULL);
     return 0;
 }
 

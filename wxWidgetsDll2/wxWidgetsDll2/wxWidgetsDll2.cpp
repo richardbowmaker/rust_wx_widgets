@@ -236,13 +236,13 @@ wx_void wx_frame_set_menu_bar(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu_
     return 0;
 }
 
-wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu, wx_frame_on_menu wx_on_menu, unsigned __int64 wx_menu_id)
+wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu, wx_frame_on_menu wx_on_menu, unsigned __int64 wx_menu_id, unsigned __int64 WxFrame)
 {
     reinterpret_cast<MyFrame *>(wx_frame)->Bind(
         wxEVT_COMMAND_MENU_SELECTED,
-        [wx_frame, wx_on_menu] (wxCommandEvent& event) { (wx_on_menu)(wx_frame, reinterpret_cast<wx_object_ptr_t>(&event)); },
-        wxID_ANY, 
-        wxID_ANY, 
+        [WxFrame, wx_on_menu] (wxCommandEvent& event) { (wx_on_menu)(WxFrame, reinterpret_cast<wx_object_ptr_t>(&event)); },
+        wx_menu_id, 
+        wx_menu_id, 
         NULL);
 
     return 0;
