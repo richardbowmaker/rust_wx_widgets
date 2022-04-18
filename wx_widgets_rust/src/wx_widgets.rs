@@ -24,7 +24,6 @@ type OnInitEvent = unsafe extern "C" fn();
 type OnMenuEvent = unsafe extern "C" fn(wx_frame : WxObjectPtr, wx_command_event : WxObjectPtr) -> WxVoid;
 
 extern "C" {
-
     fn init_wx_widgets(hInstance : u64, hPrevious : u64, pCmdLine : u64, nCmdShow : i32,  on_init_handler : OnInitEvent) -> WxObjectPtr;
     fn wx_create_frame(text : *const c_char, point_x : u32, point_y : u32 , size_w : u32 , size_h : u32 ) -> WxObjectPtr;
     fn wx_frame_show(wx_frame : WxObjectPtr, show : WxBool) -> WxBool;
@@ -34,7 +33,7 @@ extern "C" {
     fn wx_menu_bar_append(wx_menu_bar : WxObjectPtr, wx_menu : WxObjectPtr, text : *const c_char) -> WxVoid;
     fn wx_frame_set_menu_bar(wx_frame : WxObjectPtr, wx_menu_bar : WxObjectPtr) -> WxVoid;
     fn wx_frame_close(wx_frame : WxObjectPtr) -> WxVoid;
-    fn wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_frame : WxObjectPtr, wx_menu : WxObjectPtr, wx_on_menu_handler : OnMenuEvent, wx_menu_id : u64, WxFramePtr : u64) -> WxVoid;
+    fn wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_frame : WxObjectPtr, wx_menu : WxObjectPtr, wx_on_menu_handler : OnMenuEvent, wx_menu_id : u64) -> WxVoid;
 }
 
 
@@ -73,7 +72,6 @@ impl WxFrame {
             menu_bar.append(&menu_file, "&File xxx");
             self.set_menu_bar(&menu_bar);
             self.bind_menu_event_handler(&menu_file_exit, WX_ID_EXIT);
-            // wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(self.main_frame, menu_file_exit.raw(), on_menu_handler, WX_ID_EXIT);
         }
     }
 
@@ -85,7 +83,7 @@ impl WxFrame {
 
     pub fn close(&self) {
         unsafe {
-            // wx_frame_close(self.main_frame);
+            wx_frame_close(self.main_frame);
         }
     }
 
@@ -97,18 +95,35 @@ impl WxFrame {
 
     // type OnMenuEvent = unsafe extern "C" fn(wx_command_event : WxObjectPtr) -> WxVoid;
     unsafe extern "C" fn on_menu_1(frame : u64, event : u64) -> u64 {
-        if frame != 0 {
-            let a = frame as usize;
-            let f : &WxFrame = utilities::from_addr(a);
+            let f = WxFrame::new(frame);
             f.close();
-        }
+
+        // unsafe {
+        //     let a = frame as usize;
+        //     let f : &WxFrame = utilities::from_addr(a);
+        //     let t = utilities::to_addr(&f);
+        //     f.close();
+        // }
         0
     }
 
     pub fn bind_menu_event_handler(&self, menu_item : &WxMenuItem, wx_menu_id: u64) {
         unsafe {
-            let wxf = utilities::to_addr(&self) as u64;
-            wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(self.main_frame, menu_item.raw(), WxFrame::on_menu_1, wx_menu_id, wxf);
+
+
+            // {
+                
+            //     let a1  = utilities::to_addr(&*self);
+            //     let wf2: &WxFrame = utilities::from_addr(a1);
+            //     let a2  = utilities::to_addr(&wf2);
+
+            //     let t = 0;
+            // }
+
+
+            // let wxf = utilities::to_addr(&*self) as u64;
+
+            wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(self.main_frame, menu_item.raw(), WxFrame::on_menu_1, wx_menu_id);
         }
     }
 }
@@ -210,14 +225,10 @@ unsafe extern "C" fn on_init(){
     INSTANCE.set(wf).unwrap();
 }
 
-unsafe extern "C" fn on_menu_handler(WxCommandEvent : WxObjectPtr) -> WxBool {
-    WxFrame::instance().close();
-    0
-}
-
 pub fn wx_widgets_main() {
 
     unsafe {
         init_wx_widgets(0, 0, 0, 0, on_init);
+        let t = 0;
     }
 }

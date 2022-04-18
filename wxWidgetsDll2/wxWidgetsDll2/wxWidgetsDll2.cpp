@@ -177,7 +177,7 @@ extern "C" WX_WIDGETS_DLL2_API wx_object_ptr_t init_wx_widgets(
 
 wx_object_ptr_t wx_create_frame(const char* text, unsigned __int32 point_x, unsigned __int32 point_y, unsigned __int32 size_w, unsigned __int32 size_h)
 {
-    return reinterpret_cast<wx_object_ptr_t>(
+    wx_object_ptr_t p = reinterpret_cast<wx_object_ptr_t>(
         new wxFrame(
             NULL, 
             wxID_ANY, 
@@ -186,6 +186,8 @@ wx_object_ptr_t wx_create_frame(const char* text, unsigned __int32 point_x, unsi
             wxSize(size_w, size_h)
             )
         );
+
+    return p;
 }
 
 wx_bool wx_frame_show(wx_object_ptr_t wx_frame, wx_bool show)
@@ -236,11 +238,11 @@ wx_void wx_frame_set_menu_bar(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu_
     return 0;
 }
 
-wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu, wx_frame_on_menu wx_on_menu, unsigned __int64 wx_menu_id, unsigned __int64 WxFrame)
+wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu, wx_frame_on_menu wx_on_menu, unsigned __int64 wx_menu_id)
 {
-    reinterpret_cast<MyFrame *>(wx_frame)->Bind(
+    reinterpret_cast<wxFrame *>(wx_frame)->Bind(
         wxEVT_COMMAND_MENU_SELECTED,
-        [WxFrame, wx_on_menu] (wxCommandEvent& event) { (wx_on_menu)(WxFrame, reinterpret_cast<wx_object_ptr_t>(&event)); },
+        [wx_frame, wx_on_menu] (wxCommandEvent& event) { (wx_on_menu)(wx_frame, reinterpret_cast<wx_object_ptr_t>(&event)); },
         wx_menu_id, 
         wx_menu_id, 
         NULL);
@@ -250,7 +252,7 @@ wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED(wx_object_ptr_t wx_frame, wx_o
 
 wx_void wx_frame_close(wx_object_ptr_t wx_frame)
 {
-    reinterpret_cast<MyFrame *>(wx_frame)->Close();
+    reinterpret_cast<wxFrame *>(wx_frame)->Close();
     return 0;
 }
 
