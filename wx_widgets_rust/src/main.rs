@@ -1,11 +1,19 @@
 
 // https://crates.io/
 
+use std::borrow::Borrow;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::ops:: {Deref, DerefMut};
+use std::cell::Ref;
+
+
 mod wx_widgets;
 mod errors;
 mod utilities;
 mod main_frame;
 mod code_generator;
+
 
 
 #[derive(Debug)]
@@ -49,20 +57,129 @@ impl std::ops::Deref for StructB {
     }
 }
 
+struct SA {
+    val : i32,
+    next : Option<Rc<RefCell<SA>>>,
+}
+
+impl SA {
+    fn new(val : i32) -> Self {
+        Self {val : val, next : None } 
+    }
+
+    fn set_other(&mut self, other : Rc<RefCell<SA>>) {
+        self.next = Some(other);
+    }
+
+    // fn print(&self) {
+    //     print!("{} : ", &self.val);
+    //     if let Some(next) = &self.next {
+    //         (*next).borrow_mut().print();
+    //     }
+    // }
+
+    fn print(&self) {
+        print!("{} : ", &self.val);
+        if let Some(next) = &self.next {
+            match (*next).try_borrow() {
+                Ok(sa) => sa.print(),
+                Err(_) => println!("error recursing struct"),
+            }
+        }
+    }
+}
+
+struct SC {
+    val : i32,
+    next : Option<Rc<RefCell<SC>>>,
+}
+
 fn main() {
     println!("wx widgets");
-    code_generator::create(&"");
 
-    // let d = Animal::<Dog>::new();
-    // d.bark();
-    
-    // let sb = StructB::new(1, 2);
-    // println!("{:?}", sb); 
-    // println!("a {} b {}", sb.a(), sb.b()); 
+    let sa1 = SA::new(1);
+    let sa2 = SA::new(2);
+    let rca1 = Rc::new(RefCell::new(sa1));
+    let rca2 = Rc::new(RefCell::new(sa2));
+
+    {
+        let x = (*rca1).borrow();
+        let y = (*rca1).borrow();
+
+        println!("{}, {}", x.val, y.val);
+    }
+
+    {
+        let mut x = (*rca1).borrow_mut();
+        x.val = 3;
+        x.set_other(rca2);
+    }
+
+    println!("{} ----", (*rca1).borrow().val);
+    (*rca1).borrow().print();
+
+
+ 
+
+
+
+
+
+
   
-    
     // main_frame::main();
+
+// ----------------------------------------------------
+
+// let sa1 = SA::new(1);
+// let sa2 = SA::new(2);
+// let sa3 = SA::new(3);
+
+// let rca1 = Rc::new(RefCell::new(sa1));
+
+// {
+//     let x = (*rca1).borrow();
+//     let y = (*rca1).borrow();
+
+//     println!("{}, {}", x.val, y.val);
+// }
+
+// {
+//     let mut x = (*rca1).borrow_mut();
+//     x.val = 3;
+// }
+
+// println!("{}", (*rca1).borrow().val);
+
+
+
+// ----------------------------------------------------
+
+    // let sb1 = SB { val : 1 };
+    // let rca1 = RefCell::new(sb1);
+
+    // {
+    //     let x = rca1.borrow();
+    //     let y = rca1.borrow();
+
+    //     println!("{}, {}", x.val, y.val);
+    // }
+
+    // {
+    //     let mut x = rca1.borrow_mut();
+    //     x.val = 3;
+    // }
+
+    // println!("{}", rca1.borrow().val);
+
+
+    
+
+
     return ()
 }
+
+
+
 
 
