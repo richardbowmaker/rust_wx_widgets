@@ -1,7 +1,9 @@
 
+
 use std::fmt;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use crate::errors::AppError;
 
 
 #[derive(Debug)]
@@ -72,6 +74,36 @@ impl Function {
     fn add_argument(&mut self, name : &str, typ : &str) {
         self.arguments.push(Argument::new(name, typ));
     }
+
+    fn generate_code(&self) -> String {
+        let mut s = String::new().to_owned();
+        s.push_str("    ");
+
+        if self.public { s.push_str("pub fn ") }
+        else { s.push_str("fn "); }
+
+        s.push_str(&self.name);
+        s.push('(');
+
+        if !self.stat {
+            if self.mutable { s.push_str("&mut self, "); }
+            else { s.push_str("&self, "); }
+        }
+        
+        let mut d = "";
+        for arg in &self.arguments {
+            s.push_str(&format!("{}{}", d, arg));
+            d = ", ";
+        }
+
+        s.push_str(")");
+
+        if !self.return_type.is_empty() {
+            s.push_str(&format!(" -> {}", self.return_type));
+        }
+
+        s
+    }
 }
 
 impl fmt::Display for Function {
@@ -120,23 +152,19 @@ impl fmt::Display for Argument {
 // -------------------------------------------------------------
 // Class
 
-struct Class {
-    parent : Option<Rc<RefCell<Class>>>,
-    name : String,
+struct Class<'a> {
+    parent      : Option<&'a Class<'a>>,
+    name        : String,
     member_vars : Vec<Argument>,
-    functions : Vec<Function>,
+    functions   : Vec<Function>,
 }
 
-impl Class {
+impl<'a> Class<'a> {
     fn new(name : &str) -> Self {
         Self { parent : None, name : String::from(name), member_vars : Vec::new(), functions : Vec::new() }
     }
 
-    fn new_wrapped(name : &str) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self { parent : None,name : String::from(name), member_vars : Vec::new(), functions : Vec::new() }))
-    }
-
-    fn set_parent(&mut self, parent : Rc<RefCell<Class>>) {
+    fn set_parent(&mut self, parent : &'a Class<'a>) {
         self.parent = Some(parent);
     }
 
@@ -150,11 +178,8 @@ impl Class {
 
     fn write_class(&self, f: &mut fmt::Formatter) {
         print!("{} : ", &self.name);
-        if let Some(parent) = &self.parent {
-            match (*parent).try_borrow() {
-                Ok(class) => class.write_class(f),
-                Err(_) => println!("error recursing class"),
-            }
+        if let Some(parent) = self.parent {
+                parent.write_class(f);
         }
     }
 
@@ -164,11 +189,8 @@ impl Class {
             writeln!(f, "  {},", var).ok();
         }
 
-        if let Some(parent) = &self.parent {
-            match (*parent).try_borrow() {
-                Ok(class) => class.write_members(f),
-                Err(_) => println!("error recursing class"),
-            }
+        if let Some(parent) = self.parent {
+            parent.write_members(f);
         }
     }
 
@@ -178,17 +200,30 @@ impl Class {
             writeln!(f, "  {},", fnc).ok();
         }
 
-        if let Some(parent) = &self.parent {
-            match (*parent).try_borrow() {
-                Ok(class) => class.write_functions(f),
-                Err(_) => println!("error recursing class"),
-            }
+        if let Some(parent) = self.parent {
+            parent.write_functions(f);
         }
     }
 
+    fn generate_code(&self, filename : &str, classes : Vec<&Class>) -> Result<(), AppError> {
+
+        let mut file = File::create(filename)?;
+
+        for class in &classes {
+            let mut writer = BufWriter::new(&file);
+            write!(&mut writer, "struct {} {{\n", class.name)?;
+            
+            for fnc in &class.functions {
+                writeln!(&mut writer, "{}", fnc.generate_code())?;
+            }
+
+            write!(&mut writer, "}}\n\n")?;
+        }
+        Ok(())
+    }
 }
 
-impl fmt::Display for Class {
+impl<'a> fmt::Display for Class<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_class(f);
         writeln!(f, "").ok();
@@ -205,65 +240,71 @@ pub fn create(filename : &str) {
 
     println!("Code generator");
 
-    let sb = StructB::new(1, 2);
-    println!("SB A: {}, b : {}", sb.a(), sb.b());
+    // let sb = StructB::new(1, 2);
+    // println!("SB A: {}, b : {}", sb.a(), sb.b());
+
+    let mut c1 = Class::new("Class1");
+    
+    c1.add_member_var("c1_a", "i32");
+    c1.add_member_var("c1_b", "u64");
+
+    let mut f1 = Function::new(true, false, false, "c1_fun1", "u64");
+    f1.add_argument("arg1", "i16");
+    f1.add_argument("arg2", "&str");
+    c1.add_member_function(f1);
+
+    let mut f2 = Function::new(true, false, true, "c1_fun2", "i32");
+    f2.add_argument("arg1", "u64");
+    c1.add_member_function(f2);
+
+    let mut f3 = Function::new(false, true, false, "c1_fun3", "");
+    f3.add_argument("arg1", "u64");
+    f3.add_argument("arg2", "i64");
+    f3.add_argument("arg3", "&str");
+    f3.add_argument("arg4", "f32");
+    c1.add_member_function(f3);
 
 
- 
 
-    let c1 = Class::new_wrapped("Class 1");
-    
-    {
-        let mut mc1 = c1.borrow_mut();
+    let mut c2 = Class::new("Class2");
 
-        mc1.add_member_var("c1_a", "i32");
-        mc1.add_member_var("c1_b", "u64");
+    c2.add_member_var("c2_a", "i32");
+    c2.add_member_var("c2_b", "u64");
+
+    f1 = Function::new(true, false, false, "c2_fun1", "u64");
+    f1.add_argument("arg1", "i16");
+    f1.add_argument("arg2", "&str");
+    c2.add_member_function(f1);
+
+    f2 = Function::new(true, false, true, "c2_fun2", "i32");
+    f2.add_argument("arg1", "u64");
+    c2.add_member_function(f2);
+
+    f3 = Function::new(false, true, false, "c2_fun3", "");
+    f3.add_argument("arg1", "u64");
+    f3.add_argument("arg2", "i64");
+    f3.add_argument("arg3", "&str");
+    f3.add_argument("arg4", "f32");
+    c2.add_member_function(f3);
+
+    let cc2 = c2;
     
-        let mut f1 = Function::new(true, false, false, "c1_fun1", "u64");
-        f1.add_argument("arg1", "i16");
-        f1.add_argument("arg2", "&str");
-        mc1.add_member_function(f1);
+    c1.set_parent(&cc2);
+
+    println!("{}", c1);
+
+    let cc1 = c1;
+
+    let mut classes : Vec<&Class> = Vec::new();
+    classes.push(&cc1);
+    classes.push(&cc2);
     
-        let mut f2 = Function::new(true, false, true, "c1_fun2", "i32");
-        f2.add_argument("arg1", "u64");
-        mc1.add_member_function(f2);
-    
-        let mut f3 = Function::new(false, true, false, "c1_fun3", "");
-        f3.add_argument("arg1", "u64");
-        f3.add_argument("arg2", "i64");
-        f3.add_argument("arg3", "&str");
-        f3.add_argument("arg4", "f32");
-        mc1.add_member_function(f3);
-    
+
+  
+    match cc1.generate_code(r"D:\projects\rust_and_c\test_code.rs", classes) {
+        Ok(_) => (),
+        Err(_) => (),
     }
-
-    let c2 = Class::new_wrapped("Class 2");
-    {
-        let mut mc2 = c2.borrow_mut();
-
-        mc2.add_member_var("c2_a", "i32");
-        mc2.add_member_var("c2_b", "u64");
-    
-        let mut f1 = Function::new(true, false, false, "c2_fun1", "u64");
-        f1.add_argument("arg1", "i16");
-        f1.add_argument("arg2", "&str");
-        mc2.add_member_function(f1);
-    
-        let mut f2 = Function::new(true, false, true, "c2_fun2", "i32");
-        f2.add_argument("arg1", "u64");
-        mc2.add_member_function(f2);
-    
-        let mut f3 = Function::new(false, true, false, "c2_fun3", "");
-        f3.add_argument("arg1", "u64");
-        f3.add_argument("arg2", "i64");
-        f3.add_argument("arg3", "&str");
-        f3.add_argument("arg4", "f32");
-        mc2.add_member_function(f3);
-    
-    }
-    
-    c1.borrow_mut().set_parent(c2);
-    println!("{}", c1.borrow_mut());
 
     
 }

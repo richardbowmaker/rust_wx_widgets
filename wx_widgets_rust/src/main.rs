@@ -13,6 +13,7 @@ mod errors;
 mod utilities;
 mod main_frame;
 mod code_generator;
+mod code_generator1;
 
 
 
@@ -67,7 +68,7 @@ impl SA {
         Self {val : val, next : None } 
     }
 
-    fn set_other(&mut self, other : Rc<RefCell<SA>>) {
+    fn set_next(&mut self, other : Rc<RefCell<SA>>) {
         self.next = Some(other);
     }
 
@@ -96,27 +97,29 @@ struct SC {
 
 fn main() {
     println!("wx widgets");
+    code_generator1::create("");
+    // errors::main();
 
-    let sa1 = SA::new(1);
-    let sa2 = SA::new(2);
-    let rca1 = Rc::new(RefCell::new(sa1));
-    let rca2 = Rc::new(RefCell::new(sa2));
+    // let sa1 = SA::new(1);
+    // let sa2 = SA::new(2);
+    // let rca1 = Rc::new(RefCell::new(sa1));
+    // let rca2 = Rc::new(RefCell::new(sa2));
 
-    {
-        let x = (*rca1).borrow();
-        let y = (*rca1).borrow();
+    // {
+    //     let x = (*rca1).borrow();
+    //     let y = (*rca1).borrow();
 
-        println!("{}, {}", x.val, y.val);
-    }
+    //     println!("{}, {}", x.val, y.val);
+    // }
 
-    {
-        let mut x = (*rca1).borrow_mut();
-        x.val = 3;
-        x.set_other(rca2);
-    }
+    // {
+    //     let mut x = (*rca1).borrow_mut();
+    //     x.val = 3;
+    //     x.set_next(rca2);
+    // }
 
-    println!("{} ----", (*rca1).borrow().val);
-    (*rca1).borrow().print();
+    // println!("{} ----", (*rca1).borrow().val);
+    // (*rca1).borrow().print();
 
 
  
@@ -178,6 +181,9 @@ fn main() {
 
     return ()
 }
+
+
+
 
 
 
