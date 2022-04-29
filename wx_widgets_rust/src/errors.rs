@@ -4,6 +4,8 @@ use std::io::ErrorKind;
 use core::num::ParseIntError;
 use std::fmt;
 use std::io::Error;
+use regex::Regex;
+
 
 macro_rules! error_catch{
         // match like arm for macro
@@ -20,34 +22,56 @@ macro_rules! error_catch{
            }
         }
 
-pub enum AppErrorT {
-    MyIoError(ErrorKind),
-    MyParseIntError,
-}
 
 pub struct AppError {
-    kind: AppErrorT,
+    kind: AppErrorKind,
     description: String,
 }
 
+pub enum AppErrorKind {
+    GeneralError,
+    IoError(ErrorKind),
+    ParseIntError,
+    RegexError,
+}
+
+impl AppError {
+    pub fn new(text : &str) -> Self {
+        Self { kind : AppErrorKind::GeneralError, description : String::from(text) }
+    }
+}
+
 // convert from io::Error to MyError
-impl From<Error> for AppError {
+impl From<io::Error> for AppError {
     fn from(err: Error) -> Self {
-        let s = format!("io::Error {}", err);
-        AppError { kind: AppErrorT::MyIoError(err.kind()), description : s }
+        let s = format!("{}, kind : {:?}", err, err.kind());
+        AppError { kind: AppErrorKind::IoError(err.kind()), description : s }
     }
 }
 
 impl From<ParseIntError> for AppError {
     fn from(err: ParseIntError) -> Self {
-        let s = format!("ParseIntError {} {} {}", err, file!(), line!());
-        AppError { kind: AppErrorT::MyParseIntError, description: s }
+        let s = format!("{}", err);
+        AppError { kind: AppErrorKind::ParseIntError, description: s }
+    }
+}
+
+impl From<regex::Error> for AppError {
+    fn from(err : regex::Error) -> Self {
+        let s = format!("{}", err);
+        AppError { kind: AppErrorKind::RegexError, description: s }
     }
 }
 
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "AppError, {}", &self.description)
+        match &self.kind {
+            AppErrorKind::GeneralError              => write!(f, "Error")?,
+            AppErrorKind::IoError(kind)  => write!(f, "Parse integer error : {:?}", kind)?,
+            AppErrorKind::ParseIntError             => write!(f, "Parse integer error")?,
+            AppErrorKind::RegexError                => write!(f, "Regex error")?,
+        }
+        write!(f, " : {}", &self.description)
     }
 }
 
