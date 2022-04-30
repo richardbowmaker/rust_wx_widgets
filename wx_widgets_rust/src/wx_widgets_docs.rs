@@ -20,43 +20,80 @@ pub fn main() {
 
 pub fn parse() -> Result<(), AppError> {
 
+    let file = File::open(r"E:\_Ricks\c++\wxWidgets\3.1.3\wxWidgets-3.1.3\docs\doxygen\out\html\classwx_frame.html")?;
+    let reader = BufReader::new(file);
+
+    let mut data : bool = false;
+    let re = Regex::new(r"(<[^>]+>)([^<]*)")?;
+
+    for ol in reader.lines() {
+        let line = ol?;
+        if !data {
+            data = line.starts_with("Public Member Functions");
+        }
+        else {
+            if line.starts_with(r#"<h2 class="groupheader">Constructor"#) { break; }
+
+            let mut s = String::from("");
+
+            for caps in re.captures_iter(&line) {
+                if caps.len() > 2 {
+                    s.push_str(&caps[2]);
+                    s.push(' ');
+                }
+            }
+        
+            let s = s.replace("&#160;", "");
+            let s = s.replace("&amp;", "&");
+            let s = s.replace("  ", " ");
+        
+            println!("{}", &s);
+        }
+    }
+
+    Ok(())
+
+
+
     // let re = Regex::new(r"^\d{4}-\d{2}-\d{2}$")?;
     // let x = re.is_match("2014-01-01");
 
 
+    // E:\_Ricks\c++\wxWidgets\3.1.3\wxWidgets-3.1.3\docs\doxygen\out\html\classwx_frame.html
+
 //    let re = Regex::new(r"(.*?)(<a\b[^>]*>(.*?)</a>)*")?;
-    let re = Regex::new(r".*?<a\b[^>]*>.*?</a>*")?;
+//    let re = Regex::new(r"(<[^>]+>)([^<]*)")?;
 //    let text = r#"<tr class="memitem:af80368ba23c71c5d947c3178b8fe10fc"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classwx_frame.html#af80368ba23c71c5d947c3178b8fe10fc">wxFrame</a> ()</td></tr>"#;
-    let text = r#"<tr class="memitem:af80368ba23c71c5d947c3178b8fe10fc"><a class="el" href="classwx_frame.html#af80368ba23c71c5d947c3178b8fe10fc">wxFrame</a> ()</td></tr>"#;
+//    let text = r#"<tr class="memitem:af80368ba23c71c5d947c3178b8fe10fc"><a class="el" href="classwx_frame.html#af80368ba23c71c5d947c3178b8fe10fc">wxFrame</a> ()</td></tr>"#;
+//    let text = r#"<tr class="memitem:a01b53ac2d4a5e6b0773ecbcf7b5f6af8"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classwx_frame.html#a01b53ac2d4a5e6b0773ecbcf7b5f6af8">wxFrame</a> (<a class="el" href="classwx_window.html">wxWindow</a> *parent, <a class="el" href="windowid_8h.html#ae8091432cc2cb2485d45f2302fb51133">wxWindowID</a> id, const <a class="el" href="classwx_string.html">wxString</a> &amp;title, const <a class="el" href="classwx_point.html">wxPoint</a> &amp;pos=<a class="el" href="gdicmn_8h.html#af5a90c753eaf3d3e3e5068a19ec3c1d0">wxDefaultPosition</a>, const <a class="el" href="classwx_size.html">wxSize</a> &amp;size=<a class="el" href="gdicmn_8h.html#a33a012cdb075e9f78c93f63bec2dc27b">wxDefaultSize</a>, long style=<a class="el" href="toplevel_8h.html#ab3ad2777e5178344fa798ec8fd8e95e2">wxDEFAULT_FRAME_STYLE</a>, const <a class="el" href="classwx_string.html">wxString</a> &amp;name=wxFrameNameStr)</td></tr>"#;    
+
+    // if re.is_match(text) {
+    //     println!("Regex matched OK");
+    // }
+    // else {
+    //     println!("*** Regex match failed ***");
+    // }
     
-    if re.is_match(text) {
-        println!("Regex matched OK");
-    }
-    else {
-        println!("*** Regex match failed ***");
-    }
-    
-    let m = re.find(text).ok_or(AppError::new("Regex match"))?;
-    println!("Regex find ({}:{}) - {}", m.start(), m.end(), m.as_str());
+    // let m = re.find(text).ok_or(AppError::new("Regex match"))?;
+    // println!("Regex find ({}:{}) - {}", m.start(), m.end(), m.as_str());
+    // let mut s = String::from("");
 
-    for caps in re.captures_iter(text) {
-        // println!("Movie: {:?}, Released: {:?}",
-        //          &caps["title"], &caps["year"]);
+    // for caps in re.captures_iter(text) {
+    //     println!("capture : ");
+    //     if caps.len() > 0 {
+    //         for cap in caps.iter() {
+    //             if let Some(m) = cap {
+    //                 println!("match : {}", &m.as_str());
+    //             }
+    //         }
+    //         s.push_str(&caps[2]);
+    //     }
+    // }
 
-        if caps.len() > 0 {
-            for cap in caps.iter() {
-                if let Some(m) = cap {
-                    println!("match : {}", &m.as_str());
-                }
-            }
-        }
-    }
+    // let s = s.replace("&#160;", "");
+    // let s = s.replace("&amp;", "&");
 
-
-
-
-
-
+    // println!("finally : {}", &s);
 
     // let om = re.find("2014-01-01");
 
@@ -65,31 +102,9 @@ pub fn parse() -> Result<(), AppError> {
     //     let y = 0;
     // }
 
-
-
-
     // <tr class="memitem:af80368ba23c71c5d947c3178b8fe10fc"><td class="memItemLeft" align="right" valign="top">&#160;
     //      </td><td class="memItemRight" valign="bottom"><a class="el" href="classwx_frame.html#af80368ba23c71c5d947c3178b8fe10fc">wxFrame</a> ()</td></tr>
 
-
-
-    let file = File::open(r"D:\projects\rust_and_c\wxwidgets docs\classwx_frame.html")?;
-    let reader = BufReader::new(file);
-
-    let mut data : bool = false;
-
-    for ol in reader.lines() {
-        let line = ol?;
-        if !data {
-            data = line.starts_with("Public Member Functions");
-        }
-        else {
-
-
-        }
-    }
-
-    Ok(())
 }
 
 // pub fn parse() {
