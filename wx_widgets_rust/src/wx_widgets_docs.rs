@@ -24,30 +24,81 @@ pub fn parse() -> Result<(), AppError> {
     let reader = BufReader::new(file);
 
     let mut data : bool = false;
-    let re = Regex::new(r"(<[^>]+>)([^<]*)")?;
+
+
+    // regex to extract html tags from a line
+    let rex_html = Regex::new(r"(<[^>]+>)([^<]*)")?;
+
+/*
+
+parse a method line such as;
+
+    virtual bool  Create ( wxWindow *parent, wxWindowID id, const wxString &title, const wxPoint &pos= wxDefaultPosition , const wxSize &size= wxDefaultSize , long style= wxDEFAULT_FRAME_STYLE , const wxString &name=wxFrameNameStr) 
+
+(?x)                 # free space mode
+\s*(virtual)?        # optional virtual method
+\s*(\w*)             # return type 
+\s*(\w*)             # method name
+\s*\(\s*             # opening bracket
+(([^,\)]+)[,\)])*    # repeated parameters
+
+
+
+(?x)  \s*(virtual)?  \s*(\w*)  \s*(\w*)  \s*\(\s*  (([^,\)]+)[,\)])*    
+
+*/
+
+    let rex_method = Regex::new(r"(?x)  \s*(virtual)?  \s*(\w*)  \s*(\w*)  \s*\(\s*  (([^,\)]+)[,\)])*")?;
 
     for ol in reader.lines() {
-        let line = ol?;
+        let mut line = ol?;
+
         if !data {
             data = line.starts_with("Public Member Functions");
         }
         else {
             if line.starts_with(r#"<h2 class="groupheader">Constructor"#) { break; }
 
+            println!("html - {}", &line);
+
             let mut s = String::from("");
 
-            for caps in re.captures_iter(&line) {
+            // --------------
+            // extract html tags
+
+            for caps in rex_html.captures_iter(&line) {
                 if caps.len() > 2 {
                     s.push_str(&caps[2]);
                     s.push(' ');
                 }
+                else { continue; }
             }
-        
+
             let s = s.replace("&#160;", "");
             let s = s.replace("&amp;", "&");
-            let s = s.replace("  ", " ");
-        
-            println!("{}", &s);
+            let line = s.clone();
+            let mut s = String::from("");
+
+            println!("text - {}", &line);
+
+            // ----------------------
+            // parse method signature
+
+            for caps in rex_method.captures_iter(&line) {
+
+                if caps.len() > 0 {
+
+                    for cap in caps.iter() {
+
+                        if let Some(tok) = cap {
+                            s.push_str(&tok.as_str());
+                            s.push_str(" $$ ");
+                        }
+                    }
+                    println!("{}", &s);
+                }
+                else { continue; }
+            }
         }
     }
 
