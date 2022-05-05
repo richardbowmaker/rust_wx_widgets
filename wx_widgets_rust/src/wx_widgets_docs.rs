@@ -1,15 +1,84 @@
 
-use html_parser::Dom;
-use std::fs;
+
 use std::fs::File;
-use std::io::{self, prelude::*, BufReader};
-use regex::Regex;
+use std::io::{prelude::*, BufReader};
 use crate::errors::AppError;
+use std::default::Default;
+use std::fmt;
 
 
 
 // E:\_Ricks\c++\wxWidgets\3.1.3\wxWidgets-3.1.3\include\wx\msw
 
+// -----------------------------------------------
+// Method type
+pub struct Method {
+    is_virtual : bool, 
+    name : String,
+    arguments : Vec<Argument>,
+}
+
+impl Default for Method {
+    fn default() -> Self {
+        Self {is_virtual : false, name : String::from(""), arguments : Vec::new()} 
+    }
+}
+
+impl fmt::Display for Method {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_virtual { write!(f, "virtual ")?; }
+        write!(f, "{} (", &self.name);
+        let mut sep = "";
+        for arg in &self.arguments {
+            write!(f, "{}{}", &sep, arg);
+            sep = ", ";
+        }
+        write!(f, ")")
+    }
+}
+
+impl Method {
+    fn add_argument(&mut self, arg : Argument) {
+        self.arguments.push(arg);
+    }
+}
+
+// -----------------------------------------------
+// Argument type
+//
+// const wxPoint &pos= wxDefaultPosition
+
+pub struct Argument {
+    is_const : bool, 
+    is_ref : bool,
+    is_pointer : bool,
+    type_ : String,
+    name : String,
+    default_value : String,
+}
+
+impl Default for Argument {
+    fn default() -> Self {
+        Self{is_const : false, is_ref : false, is_pointer : false, type_ : String::from(""), name : String::from(""), default_value : String::from("")} 
+    }
+}
+
+impl fmt::Display for Argument {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_const { write!(f, "const ")?; }
+        write!(f, "{} ", &self.type_)?;
+        if self.is_ref { write!(f, "&")?; }
+        if self.is_pointer { write!(f, "*")?; }
+        write!(f, "{}", &self.name)?;
+        if self.default_value.len() > 0 {
+            write!(f, "={}", &self.default_value)?;
+        }
+        Ok(())
+    }
+}
+
+
+// -----------------------------------------------
 
 pub fn main() {
     match parse() {
@@ -59,10 +128,39 @@ pub fn parse() -> Result<(), AppError> {
             let line = remove_tags(&line).replace("&#160;", "").replace("&amp;", "&");
             println!("text - {}", &line);
 
-            for token in line.split(" ") {
-                let token = token.trim();
-                println!("token {}", &token);
-            }
+            if let Some(p1) = line.find('(') {
+                if let Some(p2) = line.find(')') {
+
+                    // extract all upto first bracket and split into tokens
+                    let s1 = &line[0..p1]; 
+                    let s2  = &line[(p1+1)..p2];
+
+                    let mut m = Method::default();
+
+                    for s in s1.split(' ') {
+                        let t = s.trim();
+                        if t == "virtual" {m.is_virtual = true; }
+                        else { 
+                            m.name = String::from(t);
+                            break;
+                         }
+                    }
+
+                    for s in s2.split(',') {
+                        let ss : Vec<&str> = s.split(' ').collect();
+                        let mut arg = Argument::default();
+
+                        if ss[0] == "const" {
+                            arg.is_const = true;
+                            arg.name = String::from(ss[1]);
+                        }
+                        m.add_argument(arg);
+                    }
+
+                    println!("{}", &m);
+
+                } 
+            } 
 
             let p = 0;
         }
