@@ -124,7 +124,7 @@ pub fn parse() -> Result<(), AppError> {
         else {
             if line.starts_with(r#"<h2 class="groupheader">Constructor"#) { break; }
 
-            println!("html - {}", &line);
+            // println!("html - {}", &line);
             let line = remove_tags(&line).replace("&#160;", "").replace("&amp;", "&");
             println!("text - {}", &line);
 
@@ -147,31 +147,49 @@ pub fn parse() -> Result<(), AppError> {
                     }
 
                     for s in s2.split(',') {
-                        let ss : Vec<&str> = s.split(' ').collect();
-                        let mut arg = Argument::default();
+                        let s = s.trim();
+                        if !s.is_empty() {
+                            let ss : Vec<&str> = s.split(' ').collect();
+                            let mut arg = Argument::default();
+                            let mut ix = 0;
 
-                        if ss[0] == "const" {
-                            arg.is_const = true;
-                            arg.name = String::from(ss[1]);
+                            if ss[ix] == "const" {
+                                arg.is_const = true;
+                                ix += 1;
+                            }
+
+                            arg.type_ = String::from(ss[ix]);
+                            ix += 1;
+
+                            let mut t = ss[ix];
+                            if t.starts_with('&') {
+                                arg.is_ref = true;
+                                t = &t[1..];
+                            }
+                            else if t.starts_with('*') {
+                                arg.is_pointer = true;
+                                t = &t[1..];
+                            }
+
+                            let tt : Vec<&str> = t.split('=').collect();
+                            arg.name = String::from(tt[0]);
+                            if tt.len() > 1 {
+                                arg.default_value = String::from(tt[1]);
+                            }
+
+                            m.add_argument(arg);
                         }
-                        m.add_argument(arg);
                     }
-
-                    println!("{}", &m);
-
+                    println!("Method ====================\n{}", &m);
                 } 
             } 
-
-            let p = 0;
         }
     }
     Ok(())
 }
 
 fn remove_tags(in_str : &str) -> String {
-
     let mut outs = in_str.to_owned();
-
     while true {
         if let Some(p1) = outs.find('<') {
             if let Some(p2) = outs.find('>') {
