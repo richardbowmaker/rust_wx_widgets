@@ -13,31 +13,58 @@ use std::fmt;
 // -----------------------------------------------
 // Method type
 pub struct Method {
-    is_virtual : bool, 
-    name : String,
-    arguments : Vec<Argument>,
+    is_virtual      : bool, 
+    return_type     : String,
+    is_ref          : bool,
+    is_pointer      : bool,
+    name            : String,
+    is_constructor  : bool,
+    is_destructor   : bool,
+    arguments       : Vec<Argument>,
 }
 
 impl Default for Method {
     fn default() -> Self {
-        Self {is_virtual : false, name : String::from(""), arguments : Vec::new()} 
+        Self {
+            is_virtual      : false, 
+            return_type     : String::from(""), 
+            is_ref          : false, 
+            is_pointer      : false, 
+            name            : String::from(""), 
+            is_constructor  : false,
+            is_destructor   : false,
+            arguments       : Vec::new(), } 
     }
 }
 
 impl fmt::Display for Method {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.is_virtual { write!(f, "virtual ")?; }
-        write!(f, "{} (", &self.name);
+        write!(f, "{}", &self.return_type)?;
+        if self.is_ref { write!(f, "&")?; }
+        if self.is_pointer { write!(f, "*")?; }
+        write!(f, " {} (", &self.name)?;
         let mut sep = "";
         for arg in &self.arguments {
-            write!(f, "{}{}", &sep, arg);
+            write!(f, "{}{}", &sep, arg)?;
             sep = ", ";
         }
-        write!(f, ")")
+        write!(f, ")")?;
+        if self.is_constructor { write!(f, " // constructor")?; }
+        if self.is_destructor { write!(f, " // destructor")?; }
+        Ok(())
     }
 }
 
 impl Method {
+    fn set_name(&mut self, name : &str) {
+        self.name = name.trim().to_owned();
+    }
+
+    fn set_return_type(&mut self, return_type : &str) {
+        self.return_type = return_type.trim().to_owned();
+    }
+
     fn add_argument(&mut self, arg : Argument) {
         self.arguments.push(arg);
     }
@@ -49,17 +76,23 @@ impl Method {
 // const wxPoint &pos= wxDefaultPosition
 
 pub struct Argument {
-    is_const : bool, 
-    is_ref : bool,
-    is_pointer : bool,
-    type_ : String,
-    name : String,
-    default_value : String,
+    is_const        : bool, 
+    is_ref          : bool,
+    is_pointer      : bool,
+    type_           : String,
+    name            : String,
+    default_value   : String,
 }
 
 impl Default for Argument {
     fn default() -> Self {
-        Self{is_const : false, is_ref : false, is_pointer : false, type_ : String::from(""), name : String::from(""), default_value : String::from("")} 
+        Self {
+            is_const        : false, 
+            is_ref          : false, 
+            is_pointer      : false, 
+            type_           : String::from(""), 
+            name            : String::from(""), 
+            default_value   : String::from(""),} 
     }
 }
 
@@ -77,6 +110,19 @@ impl fmt::Display for Argument {
     }
 }
 
+impl Argument {
+    fn set_name(&mut self, name : &str) {
+        self.name = name.trim().to_owned();
+    }
+
+    fn set_type(&mut self, type_ : &str) {
+        self.type_ = type_.trim().to_owned();
+    }
+
+    fn set_default_value(&mut self, default_value : &str) {
+        self.default_value = default_value.trim().to_owned();
+    }
+}
 
 // -----------------------------------------------
 
@@ -89,79 +135,94 @@ pub fn main() {
 
 pub fn parse() -> Result<(), AppError> {
 
-    // let s1 = extract_tags("123<456>789");
-    // println!("{}", &s1);
-    // let s1 = extract_tags("<456>789");
-    // println!("{}", &s1);
-    // let s1 = extract_tags("123<456>");
-    // println!("{}", &s1);
-    // let s1 = extract_tags("123<456");
-    // println!("{}", &s1);
-    // let s1 = extract_tags("123><567");
-    // println!("{}", &s1);
-    // let s1 = extract_tags("123<456>789<abc>xyz");
-    // println!("{}", &s1);
-    // let s1 = extract_tags("123<456>789<abc>");
-    // println!("{}", &s1);
-    // let s1 = extract_tags("123<456>789<abc");
-    // println!("{}", &s1);
-    // let s1 = extract_tags("<><<>><<>>><<");
-    // println!("{}", &s1);
-
-
     let file = File::open(r"E:\_Ricks\c++\wxWidgets\3.1.3\wxWidgets-3.1.3\docs\doxygen\out\html\classwx_frame.html")?;
     let reader = BufReader::new(file);
 
     let mut data : bool = false;
 
-
     for ol in reader.lines() {
-        let line = ol?;
+        let mut line = ol?;
 
         if !data {
             data = line.starts_with("Public Member Functions");
         }
         else {
+            // end of data
             if line.starts_with(r#"<h2 class="groupheader">Constructor"#) { break; }
 
-            // println!("html - {}", &line);
-            let line = remove_tags(&line).replace("&#160;", "").replace("&amp;", "&");
-            println!("text - {}", &line);
+            // skip lines not containing a method description
+            if !line.starts_with(r#"<tr class="memitem"#) { continue; }
+
+            line = remove_tags(&line).replace("&#160;", "").replace("&amp;", "&");
+            line = line.trim().to_owned();
+
+            if line.contains("wxStatusBar") {
+                let n  = 0;
+            }
 
             if let Some(p1) = line.find('(') {
                 if let Some(p2) = line.find(')') {
 
+                    let mut method = Method::default();
+
+                    // method name and virtual
                     // extract all upto first bracket and split into tokens
-                    let s1 = &line[0..p1]; 
-                    let s2  = &line[(p1+1)..p2];
+                    let s1 = remove_unwanted_spaces(&line[0..p1]);
+                    let s2  = remove_unwanted_spaces(&line[(p1+1)..p2]);
+                    let ss : Vec<&str> = s1.split(' ').collect();
 
-                    let mut m = Method::default();
+                    if ss.len() == 1 {
+                        method.is_constructor = true;
+                        method.set_name(ss[0]);
+                    } else if ss.len() == 2 {
+                        if ss[0] == "virtual" && ss[1].starts_with("~"){
+                            method.is_virtual = true;
+                            method.is_destructor = true;
+                            method.set_name(&ss[1]);
+                        } else {
+                            method.set_return_type(&ss[0]);
+                            method.set_name(&ss[1]);
+                        }
+                    } else {
+                        let mut ix = 0;
+                        if ss[ix] == "virtual" {
+                            method.is_virtual = true;
+                            ix += 1;
+                        }
 
-                    for s in s1.split(' ') {
-                        let t = s.trim();
-                        if t == "virtual" {m.is_virtual = true; }
-                        else { 
-                            m.name = String::from(t);
-                            break;
-                         }
+                        method.set_return_type(ss[ix]);
+                        ix += 1;
+
+                        if ss[ix] == "*" {
+                            method.is_pointer = true;
+                            ix += 1;
+                        }
+                        if ss[ix] == "&" {
+                            method.is_ref = true;
+                            ix += 1;
+                        }
+
+                        method.set_name(ss[ix]);
                     }
 
-                    for s in s2.split(',') {
-                        let s = s.trim();
-                        if !s.is_empty() {
-                            let ss : Vec<&str> = s.split(' ').collect();
+                    // parse method arguments
+                    for a in s2.split(',') {
+                        let a = a.replace("=", "= ");
+                        let a = remove_unwanted_spaces(&a);
+                        if !a.is_empty() {
+                            let aps : Vec<&str> = a.split(' ').collect();
                             let mut arg = Argument::default();
                             let mut ix = 0;
 
-                            if ss[ix] == "const" {
+                            if aps[ix] == "const" {
                                 arg.is_const = true;
                                 ix += 1;
                             }
 
-                            arg.type_ = String::from(ss[ix]);
+                            arg.set_type(aps[ix]);
                             ix += 1;
 
-                            let mut t = ss[ix];
+                            let mut t = aps[ix];
                             if t.starts_with('&') {
                                 arg.is_ref = true;
                                 t = &t[1..];
@@ -171,17 +232,17 @@ pub fn parse() -> Result<(), AppError> {
                                 t = &t[1..];
                             }
 
-                            let tt : Vec<&str> = t.split('=').collect();
-                            arg.name = String::from(tt[0]);
-                            if tt.len() > 1 {
-                                arg.default_value = String::from(tt[1]);
+                            if t.ends_with('=') {
+                                arg.set_default_value(aps[ix+1]);
+                                t = &t[0..t.len()-1];
                             }
+                            arg.set_name(t);
 
-                            m.add_argument(arg);
+                            method.add_argument(arg);
                         }
                     }
-                    println!("Method ====================\n{}", &m);
-                } 
+                    println!("Method ====================\n{}", &method);
+                }
             } 
         }
     }
@@ -193,7 +254,7 @@ fn remove_tags(in_str : &str) -> String {
     while true {
         if let Some(p1) = outs.find('<') {
             if let Some(p2) = outs.find('>') {
-                if p1 < p2 { outs = outs[..p1].to_owned() + &outs[(p2+1usize)..]; }
+                if p1 < p2 { outs = outs[..p1].to_owned() + " " + &outs[(p2+1usize)..]; }
                 else { outs = outs[(p2+1usize)..].to_owned(); }
             }
             else { outs = outs[..p1].to_owned(); }
@@ -201,5 +262,13 @@ fn remove_tags(in_str : &str) -> String {
         else { break };
     }
     outs
+}
+
+fn remove_unwanted_spaces(s : &str) -> String {
+    let mut s = s.trim().to_owned();
+    while let Some(_) = s.find("  ") {
+        s = s.replace("  ", " ");
+    }
+    s
 }
 
