@@ -4,7 +4,7 @@ use std::io::ErrorKind;
 use core::num::ParseIntError;
 use std::fmt;
 use std::io::Error;
-use regex::Regex;
+
 
 
 macro_rules! error_catch{
@@ -33,6 +33,7 @@ pub enum AppErrorKind {
     IoError(ErrorKind),
     ParseIntError,
     RegexError,
+    SerdeError,
 }
 
 impl AppError {
@@ -63,13 +64,21 @@ impl From<regex::Error> for AppError {
     }
 }
 
+impl From<serde_json::Error> for AppError {
+    fn from(err : serde_json::Error) -> Self {
+        let s = format!("{}", err);
+        AppError { kind: AppErrorKind::SerdeError, description: s }
+    }
+}
+
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.kind {
             AppErrorKind::GeneralError              => write!(f, "Error")?,
-            AppErrorKind::IoError(kind)  => write!(f, "Parse integer error : {:?}", kind)?,
+            AppErrorKind::IoError(kind) => write!(f, "Parse integer error : {:?}", kind)?,
             AppErrorKind::ParseIntError             => write!(f, "Parse integer error")?,
             AppErrorKind::RegexError                => write!(f, "Regex error")?,
+            AppErrorKind::SerdeError                => write!(f, "Serde error")?,
         }
         write!(f, " : {}", &self.description)
     }

@@ -1,0 +1,9 @@
+{
+  "rust_templates_dir": "D:\\projects\\rust_and_c\\wx_widgets_rust\\generated\\rust\\templates",
+  "rust_code_dir": "D:\\projects\\rust_and_c\\wx_widgets_rust\\generated\\rust\\code",
+  "cpp_templates_dir": "D:\\projects\\rust_and_c\\wx_widgets_rust\\generated\\cpp\\templates",
+  "cpp_code_dir": "D:\\projects\\rust_and_c\\wx_widgets_rust\\generated\\cpp\\code",
+  "template_start_marker": "///#generated_start",
+  "template_end_marker": "///#generated_end xx",
+  "classes": []
+}

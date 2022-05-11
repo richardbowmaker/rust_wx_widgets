@@ -28,6 +28,10 @@ pub struct WxFrame{
 
 
 ///#generated_start
+impl WxFrame {
+    pub fn create(&self, parent : &WxWindow, id : i32, title : &&str, pos : Option<&(i32, i32)>, size : Option<&(i32, i32)>, style : Option<i64>, name : Option<&&str>)
+    
+}
 ///#generated_end
 
 

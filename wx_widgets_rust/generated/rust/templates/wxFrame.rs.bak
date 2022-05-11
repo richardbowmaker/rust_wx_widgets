@@ -16,7 +16,7 @@ type OnMenuEventExternT = unsafe extern "C" fn(wx_frame : WxObjectPtrT, wx_comma
 
 
 #[derive(Debug)]
-pub struct WxWindow{
+pub struct WxFrame{
     window : WxObjectPtrT,
 }
 
