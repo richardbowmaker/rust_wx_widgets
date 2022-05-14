@@ -4,8 +4,7 @@ use std::io::ErrorKind;
 use core::num::ParseIntError;
 use std::fmt;
 use std::io::Error;
-
-
+use std::ffi::{CString, NulError};
 
 macro_rules! error_catch{
         // match like arm for macro
@@ -34,6 +33,7 @@ pub enum AppErrorKind {
     ParseIntError,
     RegexError,
     SerdeError,
+    NulError,
 }
 
 impl AppError {
@@ -71,6 +71,13 @@ impl From<serde_json::Error> for AppError {
     }
 }
 
+impl From<NulError> for AppError {
+    fn from(err : NulError) -> Self {
+        let s = format!("{}", err);
+        AppError { kind: AppErrorKind::NulError, description: s }
+    }
+}
+
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.kind {
@@ -79,6 +86,7 @@ impl fmt::Display for AppError {
             AppErrorKind::ParseIntError             => write!(f, "Parse integer error")?,
             AppErrorKind::RegexError                => write!(f, "Regex error")?,
             AppErrorKind::SerdeError                => write!(f, "Serde error")?,
+            AppErrorKind::NulError                  => write!(f, "CString NulError error")?,
         }
         write!(f, " : {}", &self.description)
     }

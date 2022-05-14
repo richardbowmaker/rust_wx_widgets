@@ -142,6 +142,8 @@ extern "C" WX_WIDGETS_DLL2_API wx_void init_wx_widgets_extern(
     wx_on_init on_init
 )
 {
+    int n = sizeof(int);
+
     on_init_extern_ = on_init_extern;
     on_init_ = on_init;
 

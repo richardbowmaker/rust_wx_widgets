@@ -403,6 +403,26 @@ impl WxFrame {
     Ok(())
 }
 
+
+/*
+                                rust client type    rust call to c      imported type       exported type
+                                                    conversion          rust                cpp extern "C"
+--------------------------------------------------------------------------------------------------------------------                                                    
+const wxString &title           &str                c_str!()            *const c_char       char*
+wxWindow *parent                &WxWindow           none                *const c_void       void*
+wxWindowID id                   i32                 none                c_int               int
+const wxPoint 
+    &pos=wxDefaultPosition      (u32, u32)          none, none          c_int, c_int        int
+
+
+
+
+
+
+*/
+
+
+
 // ---------------------------------------------------
 pub fn update_rust_templates(data : &WxCodeData, code : &Code, filename : &str) -> Result<(), AppError> {
     let fsrc = fs::File::open(data.rust_templates_dir.to_owned() +  r"\" + filename)?;

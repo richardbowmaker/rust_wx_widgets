@@ -10,15 +10,29 @@ mod main_frame;
 mod wx_code_generator;
 mod wx_widgets_docs_parser;
 
+fn f1(t : &(i32, i32)) -> i32 {
+    t.0 + t.1
+}
+
 fn main() {
     println!("wx widgets");
 
-    match run() {
-        Ok(_) => {},
-        Err(e) => {
-            println!("{}", e);
-        },
-    }
+    let x = (1, 2);
+    let s = f1(&x);
+
+    let y = x.0;
+    let z = x.1;
+    let n = 0;
+
+    main_frame::main();
+
+
+    // match run() {
+    //     Ok(_) => {},
+    //     Err(e) => {
+    //         println!("{}", e);
+    //     },
+    // }
 }
 
 fn run() -> Result<(), errors::AppError> {
