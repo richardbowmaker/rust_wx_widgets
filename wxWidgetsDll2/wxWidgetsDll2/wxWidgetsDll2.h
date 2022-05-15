@@ -59,6 +59,17 @@ typedef wx_void (* wx_frame_on_menu)(wx_object_ptr_t wx_frame, wx_object_ptr_t w
 
 extern "C" WX_WIDGETS_DLL2_API wx_void wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED_extern(wx_object_ptr_t wx_frame, wx_object_ptr_t wx_menu, wx_frame_on_menu wx_on_menu, unsigned __int64 wx_menu_id, wx_function_ptr_t wx_handler);
 
+// new
+
+
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_1(void* parent, int id, char* title);
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_2(void* parent, int id, char* title, int point_x, int point_y);
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_3(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h);
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_4(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h, int style);
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_5(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h, int style, char* name);
+
+
+
 
 // --------------------------------------------------------------
 

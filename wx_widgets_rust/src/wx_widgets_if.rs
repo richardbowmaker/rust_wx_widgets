@@ -1,6 +1,6 @@
 
 use std::ffi::CString;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_void, c_int};
 use once_cell::sync::OnceCell;
 
 use crate::errors::AppError;
@@ -33,7 +33,18 @@ extern "C" {
     fn wx_frame_set_menu_bar_extern(wx_frame : *const c_void, wx_menu_bar : WxObjectPtrT) -> WxVoidT;
     fn wx_frame_close_extern(wx_frame : *const c_void) -> WxVoidT;
     fn wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED_extern(wx_frame : *const c_void, wx_menu : WxObjectPtrT, wx_on_menu_handler : OnMenuEventExternT, wx_menu_id : u64, handler : WxFunctionPtrT) -> WxVoidT;
+
+    // new
+
+    fn wx_frame_create_extern_1(parent : *const c_void, id : i32, title : *const c_char) -> *const c_void;
+    fn wx_frame_create_extern_2(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32) -> *const c_void;
+    fn wx_frame_create_extern_3(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32) -> *const c_void;
+    fn wx_frame_create_extern_4(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32, style : i32) -> *const c_void;
+    fn wx_frame_create_extern_5(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32, style : i32, name : *const c_char) -> *const c_void;
+
 }
+
+
 
 // ---------------------------------------------------------------------
 // WxFrame
@@ -47,6 +58,10 @@ macro_rules! to_cstr{
                CString::new($str)?.as_ptr()
        }
     }
+
+pub struct WxWindow {
+    window : *const c_void, 
+}
 
 #[derive(Debug)]
 pub struct WxFrame{
@@ -65,18 +80,37 @@ impl WxFrame {
         WxFrame { main_frame : frame }
     }
 
-    pub fn create(text : &str, top : u32, left : u32, width : u32, height : u32) -> Result<Self, AppError> {
+    pub fn create(parent : Option<&WxWindow>, id : i32, title : &str, pos : Option<(i32, i32)>, size : Option<(i32, i32)>, style : Option<i32>, name : Option<&str> ) -> Result<Self, AppError> {
         unsafe {
-            Ok(
-                WxFrame::new(
-                    wx_create_frame_extern(
-                    to_cstr!(text),
-                    50, 
-                    50, 
-                    450, 
-                    340)
-                )
-            )
+            let mut frame   : *const c_void = 0 as *const c_void;
+            let mut parent_ : *const c_void = 0 as *const c_void;
+
+            if let Some(p) = parent {
+                parent_ = p.window;
+            }
+
+            if let Some((x, y)) = pos {
+                if let Some((w, h)) = size {
+                    if let Some(style_) = style {
+                        if let Some(name_) = name {
+                            frame = wx_frame_create_extern_5(parent_, id, to_cstr!(title), x, y, w, h, style_, to_cstr!(name_));
+                        }
+                        else {
+                            frame = wx_frame_create_extern_4(parent_, id, to_cstr!(title), x, y, w, h, style_);
+                        }
+                    }
+                    else {
+                        frame = wx_frame_create_extern_3(parent_, id, to_cstr!(title), x, y, w, h);
+                    }
+                }
+                else {
+                    frame = wx_frame_create_extern_2(parent_, id, to_cstr!(title), x, y);
+                }
+            }
+            else {
+                frame = wx_frame_create_extern_1(parent_, id, to_cstr!(title));
+            }
+            Ok(WxFrame::new(frame))
         }
     }
 

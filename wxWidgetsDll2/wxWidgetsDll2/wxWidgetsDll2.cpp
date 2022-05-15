@@ -228,6 +228,34 @@ wx_void wx_frame_close_extern(wx_object_ptr_t wx_frame)
     return 0;
 }
 
+// new ---------------------
+
+void* wx_frame_create_extern_1(void* parent, int id, char* title)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title);
+}
+
+void* wx_frame_create_extern_2(void* parent, int id, char* title, int point_x, int point_y)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title, wxPoint(point_x, point_y));
+}
+
+void* wx_frame_create_extern_3(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title, wxPoint(point_x, point_y), wxSize(size_w, size_h));
+}
+
+void* wx_frame_create_extern_4(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h, int style)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title, wxPoint(point_x, point_y), wxSize(size_w, size_h), style);
+}
+
+void* wx_frame_create_extern_5(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h, int style, char* name)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title, wxPoint(point_x, point_y), wxSize(size_w, size_h), style, name);
+}
+
+
 
 
 

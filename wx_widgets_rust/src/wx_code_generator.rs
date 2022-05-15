@@ -22,7 +22,12 @@ pub struct WxCodeData {
     cpp_code_dir            : String,
     template_start_marker   : String,
     template_end_marker     : String,
+
+
     arg_translation         : HashMap<String, String>,
+
+
+
     classes                 : Vec<Class>,
 }
 
@@ -335,35 +340,11 @@ impl Code {
 // ---------------------------------------------------
 pub fn generate_rust_code(data : &WxCodeData, code : &mut Code) -> Result<(), AppError> {
 
-/*
-
-impl WxFrame {
-
-
-   pub fn create(text : &str, top : u32, left : u32, width : u32, height : u32) -> Self {
-        unsafe {
-            let t = CString::new(text).expect("WxFrame::create() CString::new failed");
-            let f = wx_create_frame_extern(t.as_ptr(), 50, 50, 450, 340);
-            WxFrame::new(f)
-        }
-    }
-
-
-*/
-
-
-    code.add_line(r#"impl WxFrame {"#);
-    code.inc_indent();
-    // code.add_line(r#"pub fn create(text : &str, top : u32, left : u32, width : u32, height : u32) -> Self {"#);
-    // code.inc_indent();
-    // code.add_line(r#"unsafe {"#);
-    // code.add_line(r#"}"#);
-    // code.dec_indent();
-    // code.add_line(r#"}"#);
-    // code.dec_indent();
- 
     let class = &data.classes[0];
     let method = &class.methods[1];
+
+    code.add_line(&format!("impl {} {{", &class.name));
+    code.inc_indent();
 
     // function name
     code.add_line("");
@@ -373,8 +354,8 @@ impl WxFrame {
     }
     else {
         code.add(&method.name);
+        code.add("(&self, ");
     }
-    code.add("(&self, ");
 
     let mut sep = "";
 
@@ -412,7 +393,98 @@ const wxString &title           &str                c_str!()            *const c
 wxWindow *parent                &WxWindow           none                *const c_void       void*
 wxWindowID id                   i32                 none                c_int               int
 const wxPoint 
-    &pos=wxDefaultPosition      (u32, u32)          none, none          c_int, c_int        int
+    &pos=wxDefaultPosition      (i32, i32)          none, none          c_int, c_int        int
+
+
+c call:
+
+wxFrame(wxWindow *parent, wxWindowID id, const wxString &title, const wxPoint &pos=wxDefaultPosition, const wxSize &size=wxDefaultSize, long style=wxDEFAULT_FRAME_STYLE, const wxString &name=wxFrameNameStr)
+
+rust client
+
+pub fn create(parent : Option<&WxWindow>, id : i32, title : &str, pos : Option<(i32, i32)>, size : Option<(i32, i32)>, style : Option<i32>, name : Option<&str> ) -> Result<Self, AppError> {
+    unsafe {
+        let mut frame   : *const c_void = 0 as *const c_void;
+        let mut parent_ : *const c_void = 0 as *const c_void;
+
+        if let Some(p) = parent {
+            parent_ = p.window;
+        }
+
+        if let Some((x, y)) = pos {
+            if let Some((w, h)) = size {
+                if let Some(style_) = style {
+                    if let Some(name_) = name {
+                        frame = wx_frame_create_extern_5(parent_, id, to_cstr!(title), x, y, w, h, style_, to_cstr!(name_));
+                    }
+                    else {
+                        frame = wx_frame_create_extern_4(parent_, id, to_cstr!(title), x, y, w, h, style_);
+                    }
+                }
+                else {
+                    frame = wx_frame_create_extern_3(parent_, id, to_cstr!(title), x, y, w, h);
+                }
+            }
+            else {
+                frame = wx_frame_create_extern_2(parent_, id, to_cstr!(title), x, y);
+            }
+        }
+        else {
+            frame = wx_frame_create_extern_1(parent_, id, to_cstr!(title));
+        }
+        Ok(WxFrame::new(frame))
+    }
+}
+
+
+
+import rust side
+
+fn wx_frame_create_extern_1(parent : *const c_void, id : i32, title : *const c_char) -> *const c_void;
+fn wx_frame_create_extern_2(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32) -> *const c_void;
+fn wx_frame_create_extern_3(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32) -> *const c_void;
+fn wx_frame_create_extern_4(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32, style : i32) -> *const c_void;
+fn wx_frame_create_extern_5(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32, style : i32, name : *const c_char) -> *const c_void;
+
+export c++ side
+
+extern "C" WX_WIDGETS_DLL2_API 
+
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_1(void* parent, int id, char* title);
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_2(void* parent, int id, char* title, int point_x, int point_y);
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_3(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h);
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_4(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h, int style);
+extern "C" WX_WIDGETS_DLL2_API void* wx_frame_create_extern_5(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h, int style, char* name);
+
+c code
+
+void* wx_frame_create_extern_1(void* parent, int id, char* title)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title);
+}
+
+void* wx_frame_create_extern_2(void* parent, int id, char* title, int point_x, int point_y)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title, wxPoint(point_x, point_y));
+}
+
+void* wx_frame_create_extern_3(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title, wxPoint(point_x, point_y), wxSize(size_w, size_h));
+}
+
+void* wx_frame_create_extern_4(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h, int style)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title, wxPoint(point_x, point_y), wxSize(size_w, size_h), style);
+}
+
+void* wx_frame_create_extern_5(void* parent, int id, char* title, int point_x, int point_y, int size_w, int size_h, int style, char* name)
+{
+    return new wxFrame(reinterpret_cast<wxWindow *>(parent), id, title, wxPoint(point_x, point_y), wxSize(size_w, size_h), style, name);
+}
+
+
+
 
 
 

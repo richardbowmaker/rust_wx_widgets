@@ -12,7 +12,8 @@ pub fn main()
 
 pub fn on_init() {
 
-   let rmf = wx_widgets_if::WxFrame::create(&"Rust WxWidgets", 100, 100, 300, 300);
+//    let rmf = wx_widgets_if::WxFrame::create(&"Rust WxWidgets", 100, 100, 300, 300);
+    let rmf = wx_widgets_if::WxFrame::create(None, -1, "Rust WxWidgets", Some((200, 200)), Some((500, 500)), None, None);
 
    if let Ok(mf) = rmf {
 
@@ -35,3 +36,4 @@ pub struct MainFrame {
 
     wx_frame : wx_widgets_if::WxFrame,
 }
+
