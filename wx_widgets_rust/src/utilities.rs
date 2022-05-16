@@ -22,3 +22,17 @@ impl<F> fmt::Debug for Fmt<F>
         (self.0)(f)
     }
 }
+
+pub fn camel_to_snake(sin : &str) -> String {
+    let mut sout = String::new();
+    for c in sin.chars() {
+        if c.is_uppercase() {
+            if sout.len() > 0 { sout.push('_'); }
+            sout.push(c.to_ascii_lowercase())
+        }
+        else {
+            sout.push(c);
+        }
+    }
+    sout
+}

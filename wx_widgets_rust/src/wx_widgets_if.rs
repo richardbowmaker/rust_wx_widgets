@@ -14,8 +14,8 @@ pub const WX_ID_EXIT : i32 = 5006;
 pub const WX_ID_ABOUT : i32 = 5014;
 
 type OnInitEventT = fn();
-type OnInitEventExternT = unsafe extern "C" fn(on_init : *const c_void);
-type OnMenuEventExternT = unsafe extern "C" fn(wx_frame : *const c_void, wx_command_event : *const c_void, wx_handler : *const c_void) -> *const c_void;
+// type OnInitEventExternT = unsafe extern "C" fn(on_init : *const c_void);
+// type OnMenuEventExternT = unsafe extern "C" fn(wx_frame : *const c_void, wx_command_event : *const c_void, wx_handler : *const c_void) -> *const c_void;
 
 extern "C" {
     fn init_wx_widgets_extern(hInstance : u64, hPrevious : u64, pCmdLine : *const c_char, nCmdShow : i32, on_init_extern : *const c_void, on_init : *const c_void) -> *const c_void;
@@ -32,16 +32,12 @@ extern "C" {
     fn wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED_extern(wx_frame : *const c_void, wx_menu : *const c_void, wx_on_menu_handler : *const c_void, wx_menu_id : i32, handler : *const c_void);
 
     // new
-
     fn wx_frame_create_extern_1(parent : *const c_void, id : i32, title : *const c_char) -> *const c_void;
     fn wx_frame_create_extern_2(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32) -> *const c_void;
     fn wx_frame_create_extern_3(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32) -> *const c_void;
     fn wx_frame_create_extern_4(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32, style : i32) -> *const c_void;
     fn wx_frame_create_extern_5(parent : *const c_void, id : i32, title : *const c_char, point_x : i32, point_y : i32, size_w : i32 , size_h : i32, style : i32, name : *const c_char) -> *const c_void;
-
 }
-
-
 
 // ---------------------------------------------------------------------
 // WxFrame

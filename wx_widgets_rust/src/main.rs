@@ -17,14 +17,15 @@ fn f1(t : &(i32, i32)) -> i32 {
 fn main() {
     println!("wx widgets");
 
-    let x = (1, 2);
-    let s = f1(&x);
+ 
+    // main_frame::main();
 
-    let y = x.0;
-    let z = x.1;
-    let n = 0;
-
-    main_frame::main();
+    let s = utilities::camel_to_snake("WxFrame");
+    println!("{}", &s);
+    let s = utilities::camel_to_snake("wxFrameHello");
+    println!("{}", &s);
+    let s = utilities::camel_to_snake("XXXXXXXXXXX");
+    println!("{}", &s);
 
 
     // match run() {
