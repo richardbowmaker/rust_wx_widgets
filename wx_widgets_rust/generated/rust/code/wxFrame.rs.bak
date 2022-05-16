@@ -2,12 +2,14 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
 
+
 pub const WX_ID_EXIT : u64 = 5006;
 pub const WX_ID_ABOUT : u64 = 5014;
 
 type OnInitEventT = fn();
 type OnInitEventExternT = unsafe extern "C" fn(on_init : *const c_void);
 type OnMenuEventExternT = unsafe extern "C" fn(wx_frame : *const c_void, wx_command_event : *const c_void, wx_handler : *const c_void) -> WxVoidT;
+
 
 #[derive(Debug)]
 pub struct WxWindow{

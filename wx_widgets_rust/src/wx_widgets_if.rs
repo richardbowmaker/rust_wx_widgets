@@ -9,30 +9,27 @@ use crate::errors::AppError;
 // https://stackoverflow.com/questions/50437953/provide-char-argument-to-c-function-from-rust
 
 
-type WxObjectPtrT = u64;
-type WxFunctionPtrT = u64;
-type WxBoolT = u64;
-type WxVoidT = u64;
 
-pub const WX_ID_EXIT : u64 = 5006;
-pub const WX_ID_ABOUT : u64 = 5014;
+pub const WX_ID_EXIT : i32 = 5006;
+pub const WX_ID_ABOUT : i32 = 5014;
 
 type OnInitEventT = fn();
-type OnInitEventExternT = unsafe extern "C" fn(on_init : WxFunctionPtrT);
-type OnMenuEventExternT = unsafe extern "C" fn(wx_frame : *const c_void, wx_command_event : WxObjectPtrT, wx_handler : WxFunctionPtrT) -> WxVoidT;
+type OnInitEventExternT = unsafe extern "C" fn(on_init : *const c_void);
+type OnMenuEventExternT = unsafe extern "C" fn(wx_frame : *const c_void, wx_command_event : *const c_void, wx_handler : *const c_void) -> *const c_void;
 
 extern "C" {
-//     fn init_wx_widgets_extern(hInstance : u64, hPrevious : u64, pCmdLine : u64, nCmdShow : i32,  on_init_handler : OnInitEventExternT) -> WxObjectPtrT;
-    fn init_wx_widgets_extern(hInstance : u64, hPrevious : u64, pCmdLine : u64, nCmdShow : i32, on_init_extern : OnInitEventExternT, on_init : OnInitEventT) -> WxObjectPtrT;
-    fn wx_create_frame_extern(text : *const c_char, point_x : u32, point_y : u32 , size_w : u32 , size_h : u32 ) -> *const c_void;
-    fn wx_frame_show_extern(wx_frame : *const c_void, show : WxBoolT) -> WxBoolT;
-    fn wx_create_menu_extern() -> WxObjectPtrT;
-    fn wx_menu_append_extern(wx_menu : WxObjectPtrT, wx_menu_id : u64) -> WxObjectPtrT;
-    fn wx_create_menu_bar_extern() -> WxObjectPtrT;
-    fn wx_menu_bar_append_extern(wx_menu_bar : WxObjectPtrT, wx_menu : WxObjectPtrT, text : *const c_char) -> WxVoidT;
-    fn wx_frame_set_menu_bar_extern(wx_frame : *const c_void, wx_menu_bar : WxObjectPtrT) -> WxVoidT;
-    fn wx_frame_close_extern(wx_frame : *const c_void) -> WxVoidT;
-    fn wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED_extern(wx_frame : *const c_void, wx_menu : WxObjectPtrT, wx_on_menu_handler : OnMenuEventExternT, wx_menu_id : u64, handler : WxFunctionPtrT) -> WxVoidT;
+    fn init_wx_widgets_extern(hInstance : u64, hPrevious : u64, pCmdLine : *const c_char, nCmdShow : i32, on_init_extern : *const c_void, on_init : *const c_void) -> *const c_void;
+    
+    fn wx_create_frame_extern(text : *const c_char, point_x : i32, point_y : i32 , size_w : i32 , size_h : i32) -> *const c_void;
+    fn wx_frame_show_extern(wx_frame : *const c_void, show : i32) -> i32;
+    fn wx_create_menu_extern() -> *const c_void;
+    fn wx_menu_append_extern(wx_menu : *const c_void, wx_menu_id : i32) -> *const c_void;
+    fn wx_create_menu_bar_extern() -> *const c_void;
+    fn wx_menu_bar_append_extern(wx_menu_bar : *const c_void, wx_menu : *const c_void, text : *const c_char) -> i32;
+    fn wx_frame_set_menu_bar_extern(wx_frame : *const c_void, wx_menu_bar : *const c_void);
+    fn wx_frame_close_extern(wx_frame : *const c_void);
+
+    fn wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED_extern(wx_frame : *const c_void, wx_menu : *const c_void, wx_on_menu_handler : *const c_void, wx_menu_id : i32, handler : *const c_void);
 
     // new
 
@@ -116,7 +113,7 @@ impl WxFrame {
 
     pub fn show(&self, show : bool) {
         unsafe {
-            wx_frame_show_extern(self.main_frame, show as WxBoolT);
+            wx_frame_show_extern(self.main_frame, show as i32);
         }
     }
 
@@ -132,23 +129,22 @@ impl WxFrame {
         }
     }
 
-    pub fn bind_menu_event_handler(&self, menu_item : &WxMenuItem, wx_menu_id: u64, handler : OnMenuEventHandlerT) {
+    pub fn bind_menu_event_handler(&self, menu_item : &WxMenuItem, wx_menu_id: i32, handler : OnMenuEventHandlerT) {
         unsafe {
             wx_frame_bind_wxEVT_COMMAND_MENU_SELECTED_extern(
                 self.main_frame, 
                 menu_item.raw(), 
-                WxFrame::on_menu_event_handler_extern, 
+                WxFrame::on_menu_event_handler_extern as *const c_void, 
                 wx_menu_id,
-        handler as WxFunctionPtrT);
+                handler as *const c_void);
         }
     }
 
-    unsafe extern "C" fn on_menu_event_handler_extern(frame : *const c_void, event : WxObjectPtrT, wx_handler : WxFunctionPtrT) -> WxVoidT {
+    unsafe extern "C" fn on_menu_event_handler_extern(frame : *const c_void, event : *const c_void, wx_handler : *const c_void) {
         let f = WxFrame::new(frame);
         let h : OnMenuEventHandlerT = std::mem::transmute(wx_handler);
         let e = WxCommandEvent::new(event);
         h(&f, &e);
-        0
     }
 }
 
@@ -157,7 +153,7 @@ impl WxFrame {
 
 #[derive(Debug)]
 pub struct WxMenu{
-    menu : WxObjectPtrT,
+    menu : *const c_void,
 }
 
 impl WxMenu {
@@ -168,11 +164,11 @@ impl WxMenu {
         }
     }
 
-    pub fn raw(&self) -> WxObjectPtrT {
+    pub fn raw(&self) -> *const c_void {
         self.menu
     }
 
-    pub fn append(&self, menu_id : u64) -> WxMenuItem {
+    pub fn append(&self, menu_id : i32) -> WxMenuItem {
         unsafe {
             let mi = wx_menu_append_extern(self.menu, menu_id);
             WxMenuItem::new(mi)
@@ -185,20 +181,20 @@ impl WxMenu {
 
 #[derive(Debug)]
 pub struct WxMenuItem{
-    menu_item : WxObjectPtrT,
+    menu_item : *const c_void,
 }
 
 impl WxMenuItem {
 
-    pub fn new( wx_menu_item : WxObjectPtrT) -> Self {
+    pub fn new( wx_menu_item : *const c_void) -> Self {
         WxMenuItem { menu_item : wx_menu_item }
     }
 
-    pub fn raw(&self) -> WxObjectPtrT {
+    pub fn raw(&self) -> *const c_void {
         self.menu_item
     }
 
-    pub fn append(&self, menu_id : u64) {
+    pub fn append(&self, menu_id : i32) {
         unsafe {
             wx_menu_append_extern(self.menu_item, menu_id);
         }
@@ -210,7 +206,7 @@ impl WxMenuItem {
 
 #[derive(Debug)]
 pub struct WxMenuBar{
-    menu_bar : WxObjectPtrT,
+    menu_bar : *const c_void,
 }
 
 impl WxMenuBar {
@@ -221,7 +217,7 @@ impl WxMenuBar {
         }
     }
 
-    pub fn raw(&self) -> WxObjectPtrT {
+    pub fn raw(&self) -> *const c_void {
         self.menu_bar
     }
 
@@ -237,33 +233,34 @@ impl WxMenuBar {
 // WxCommandEvent
 
 pub struct WxCommandEvent {
-    event : WxObjectPtrT,
+    event : *const c_void,
 }
 
 impl WxCommandEvent {
-    pub fn new(e : WxObjectPtrT) -> Self {
+    pub fn new(e : *const c_void) -> Self {
         WxCommandEvent { event : e }
     }
 }
 
 // --------------------------------------------------------------------
 
-unsafe extern "C" fn on_init_extern(on_init : WxFunctionPtrT) {
+unsafe extern "C" fn on_init_extern(on_init : *const c_void) {
     let f : OnInitEventT = std::mem::transmute(on_init);
     f();
 }
 
-pub fn initialise(on_init : OnInitEventT)
+pub fn initialise(on_init : OnInitEventT) -> Result<(), AppError>
 {
     unsafe {
         init_wx_widgets_extern(
             0, 
             0, 
+            to_cstr!(""), 
             0, 
-            0, 
-            on_init_extern as OnInitEventExternT, 
-            on_init as OnInitEventT);
+            on_init_extern as *const c_void, 
+            on_init as  *const c_void);
     }
+    Ok(())
 }
 
 
