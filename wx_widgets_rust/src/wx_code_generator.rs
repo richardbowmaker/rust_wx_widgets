@@ -291,6 +291,10 @@ impl Argument {
     pub fn set_default_value(&mut self, default_value : &str) {
         self.default_value = default_value.trim().to_owned();
     }
+
+    pub fn has_default(&self) -> bool {
+        self.default_value.len() > 0
+    }
 }
 
 // ---------------------------------------------------
@@ -299,24 +303,39 @@ pub struct Code {
     code : Vec<String>,
     indent_size : usize,
     indent : String,
+    line_no : usize,
 }
 
 impl Code {
     pub fn new() -> Self {
-        Self { code : Vec::new(), indent_size : 0, indent : String::new() }
+        Self { code : Vec::new(), indent_size : 0, indent : String::new(), line_no : 0usize }
     }
 
     pub fn add(&mut self, line : &str) {
-        if let Some(s) = self.code.pop() {
-            self.code.push(s + line);
+        if self.line_no == self.code.len() {
+            // start a new line
+            self.code.push(String::new());
         }
-        else {
-            self.add_line(line);
+        // add to last line
+        if line.len() > 0 {
+            if self.code[self.line_no].len() == 0 {
+                self.code[self.line_no] = String::from(&self.indent) + &self.code[self.line_no] + line;
+            } else {
+                self.code[self.line_no] = String::from(&self.code[self.line_no]) + line;
+            }
         }
     }
 
     pub fn add_line(&mut self, line : &str) {
-        self.code.push(self.indent.to_owned() + line);
+        self.add(line);
+        self.new_line();
+    }
+
+    pub fn new_line(&mut self) {
+        if self.line_no == self.code.len() {
+            self.code.push(String::new());
+        }
+        self.line_no += 1;
     }
 
     pub fn set_indent(&mut self, indent_size : usize) -> usize {
@@ -335,6 +354,57 @@ impl Code {
         }
         self.indent_size
     }
+
+    pub fn start_bracket(&mut self) {
+        self.add_line(" {");
+        self.inc_indent();
+    }
+
+    pub fn end_bracket(&mut self) {
+        self.new_line();
+        self.dec_indent();
+        self.add_line("{");
+    }
+
+    pub fn test() {
+        let mut code = Code::new();
+        code.new_line();
+        code.add("1");
+        code.add("2");
+        code.add("3");
+        code.new_line();
+        code.add("4");
+        code.add("5");
+        code.add("6");
+        code.new_line();
+        code.new_line();
+        code.new_line();
+        code.add_line("7");
+        code.add_line("8");
+        code.inc_indent();
+        code.add("aaaaaaaaaaaaaaaaaaaaaa");
+        code.start_bracket();
+        code.add_line("bbbbbbbbbbbbbbbbbbbb");
+        code.end_bracket();
+        code.add_line("aaaaaaaaaaaaaaaaaaaaaa");
+        code.dec_indent();
+        code.add_line("c");
+        code.add_line("c");
+        code.add_line("c");
+        println!("{}", code);
+    }
+}
+
+impl fmt::Display for Code {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "{}", "----------------------------------------------------------")?;
+        writeln!(f, "Code, {} lines, line no {}, indent {}", self.code.len(), self.line_no, self.indent_size * 4)?;
+        writeln!(f, "{}", "----------------------------------------------------------")?;
+        for l in &self.code {
+            writeln!(f, "{}", l)?;
+        }
+        writeln!(f, "{}", "----------------------------------------------------------")
+    }
 }
 
 // ---------------------------------------------------
@@ -343,14 +413,13 @@ pub fn generate_rust_code(data : &WxCodeData, code : &mut Code) -> Result<(), Ap
     let class = &data.classes[0];
     let method = &class.methods[1];
 
-    code.add_line(&format!("impl {} {{", &class.name));
-    code.inc_indent();
+    code.add(&format!("impl {}", &class.name));
+    code.start_bracket();
 
     // function name
-    code.add_line("");
     code.add("pub fn ");
     if method.is_constructor {
-        code.add("create");
+        code.add("create(");
     }
     else {
         code.add(&method.name);
@@ -376,11 +445,87 @@ pub fn generate_rust_code(data : &WxCodeData, code : &mut Code) -> Result<(), Ap
         if !carg.default_value.is_empty() { code.add(">") }
     }
 
-    code.add(")");
-    code.add_line("");
-    code.dec_indent();
-    code.add_line("}");
+    code.add(") -> retun type");
+    code.start_bracket();
+
+
+    // implementation
+    generate_rust_function_implementation(data, code, &method.arguments, 0, &String::from("call_extern("))?;
+
+    println!("{}", code);
+
+
+    code.end_bracket();
         
+    Ok(())
+}
+
+pub fn generate_rust_function_implementation(data : &WxCodeData, code : &mut Code, arguments : &Vec<Argument>, arg_index : usize, signature : &str) -> Result<(), AppError> {
+
+/*    
+    if let Some(name_) = name {
+        frame = wx_frame_create_extern_5(parent_, id, to_cstr!(title), x, y, w, h, style_, to_cstr!(name_));
+                                         ------------------------------------------------   
+    }
+    else {
+        frame = wx_frame_create_extern_4(parent_, id, to_cstr!(title), x, y, w, h, style_);
+    }
+*/
+
+    let mut line = String::from(signature);
+    
+    if arg_index >= arguments.len() {
+
+        // add method signature so far
+        code.add(&line);
+        code.add_line(");");     
+    }
+    else {
+        // separator
+        if arg_index > 0 {
+            line += ", ";
+        }
+
+        let current_arg = &arguments[arg_index];
+
+        let mut n = if current_arg.has_default() {
+            // if let Some(arg_) = arg {
+            code.add_line(&format!("if let Some({}_) = {}", &current_arg.name, &current_arg.name));
+            code.start_bracket();
+
+            // argument name with underscore for option types
+            String::from(&current_arg.name) + "_"
+        }
+        else {
+            String::from(&current_arg.name)
+        };
+
+        // strings wrapped in to_cstr!() macro
+        if current_arg.type_ == "wxString" {
+            n = format!("to_cstr!({})", n);
+        }
+
+        println!("{}{}", line, n);
+        generate_rust_function_implementation(data, code, arguments, arg_index + 1, &(String::from(&line) + &n))?;
+
+        code.end_bracket();
+
+        if current_arg.has_default() {
+            code.dec_indent();
+/*
+            }
+            else {
+                frame = wx_frame_create_extern_4(parent_, id, to_cstr!(title), x, y, w, h, style_);
+            }
+*/
+            code.add_line("}");
+            code.add_line("else {");
+            code.inc_indent();
+            code.add(&line);
+            code.add_line(");");
+            code.end_bracket();
+        }
+    }
     Ok(())
 }
 

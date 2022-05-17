@@ -20,20 +20,13 @@ fn main() {
  
     // main_frame::main();
 
-    let s = utilities::camel_to_snake("WxFrame");
-    println!("{}", &s);
-    let s = utilities::camel_to_snake("wxFrameHello");
-    println!("{}", &s);
-    let s = utilities::camel_to_snake("XXXXXXXXXXX");
-    println!("{}", &s);
-
-
-    // match run() {
-    //     Ok(_) => {},
-    //     Err(e) => {
-    //         println!("{}", e);
-    //     },
-    // }
+    
+    match run() {
+        Ok(_) => {},
+        Err(e) => {
+            println!("{}", e);
+        },
+    }
 }
 
 fn run() -> Result<(), errors::AppError> {
