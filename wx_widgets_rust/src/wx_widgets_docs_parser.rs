@@ -43,6 +43,7 @@ pub fn parse(data : &mut wx_code_generator::WxCodeData) -> Result<(), AppError> 
                 if let Some(p2) = line.find(')') {
 
                     let mut method = wx_code_generator::Method::default();
+                    method.set_class_name(&class.get_name());
 
                     // method name and virtual
                     // extract all upto first bracket and split into tokens

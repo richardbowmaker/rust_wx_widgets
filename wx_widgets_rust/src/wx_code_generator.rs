@@ -11,6 +11,7 @@ use std::io::Write;
 use std::collections::HashMap;
 
 use crate::errors::AppError;
+use crate::utilities;
 
 // -----------------------------------------------
 // wx code data struct
@@ -22,12 +23,7 @@ pub struct WxCodeData {
     cpp_code_dir            : String,
     template_start_marker   : String,
     template_end_marker     : String,
-
-
     arg_translation         : HashMap<String, String>,
-
-
-
     classes                 : Vec<Class>,
 }
 
@@ -141,8 +137,19 @@ impl Class {
         self.name = name.trim().to_owned();
     }
 
+    pub fn get_name(&self) -> String {
+        self.name.to_owned()
+    }
+
     pub fn add_method(&mut self, method : Method) {
         self.methods.push(method);
+    }
+
+    pub fn rust_class_name(&self) -> String {
+        if self.name.starts_with("wx") {
+            String::from("Wx") + &self.name[2..]
+        }
+        else { self.name.to_owned() }
     }
 }
 
@@ -158,6 +165,7 @@ pub struct Method {
     is_constructor  : bool,
     is_destructor   : bool,
     arguments       : Vec<Argument>,
+    class_name      : String,
 }
 
 impl Default for Method {
@@ -170,7 +178,8 @@ impl Default for Method {
             name            : String::from(""), 
             is_constructor  : false,
             is_destructor   : false,
-            arguments       : Vec::new(), } 
+            arguments       : Vec::new(),
+            class_name      : String::new(), } 
     }
 }
 
@@ -222,9 +231,26 @@ impl Method {
         self.is_destructor = is_destructor;
     }
 
+    pub fn set_class_name(&mut self, class_name : &str) {
+        self.class_name = class_name.trim().to_owned();
+    }
+
     pub fn add_argument(&mut self, arg : Argument) {
         self.arguments.push(arg);
     }
+
+    // functions to generate code names
+    pub fn rust_fn_name(&self) -> String {
+        if self.is_constructor { String::from("create")}
+        else { utilities::camel_to_snake(&self.name) }
+    }
+
+    pub fn c_export_fn_name(&self) -> String {
+        let mut n = utilities::camel_to_snake(&self.class_name) + "_";
+        if self.is_constructor { n += "create" }
+        else { n+= &utilities::camel_to_snake(&self.name) };
+        n + "_extern"
+    }    
 }
 
 // -----------------------------------------------
@@ -295,6 +321,53 @@ impl Argument {
     pub fn has_default(&self) -> bool {
         self.default_value.len() > 0
     }
+
+    // format the argument for the call to the imported c function
+    pub fn rust_import_call(&self) -> String {
+        if &self.type_ == "wxString" {
+            format!("to_cstr!({})", &self.name)
+        } 
+        else if &self.type_ == "wxPoint" || &self.type_ == "wxSize"{
+            if self.has_default() {
+                format!("{}_.0, {}_.1", &self.name, &self.name)
+            }
+            else {
+                format!("{}.0, {}.1", &self.name, &self.name)
+            }
+        }
+        else {
+            self.name.to_owned()
+        }
+    }
+
+    // format the argument for the rust function
+    pub fn rust_fn_call_signature(&self) -> String {
+        let mut t = 
+            if &self.type_ == "wxString" { "&str".to_owned() }
+            else if &self.type_ == "wxWindow" { "&WxWindow".to_owned() }
+            else if &self.type_ == "wxWindowID" { "i32".to_owned() }
+            else if &self.type_ == "wxPoint" || &self.type_ == "wxSize" { "(i32, i32)".to_owned() }
+            else if &self.type_ == "long" { "i32".to_owned() }
+            else { self.type_.to_owned() };
+
+        // default arguments are mapped to optionals
+        if self.has_default() {
+            t = format!("Option<{}>", t);
+        }
+
+        // add argument name
+        format!("{} : {}", &self.name, t)
+    }
+
+    pub fn c_export_call_signature(&self) -> String {
+            if &self.type_ == "wxString" { format!("*const c_char {}", &self.name) }
+            else if &self.type_ == "wxWindow" { format!("*const c_void {}", &self.name) }
+            else if &self.type_ == "wxWindowID" { format!("int {}", &self.name) }
+            else if &self.type_ == "wxPoint" { "int x, int y".to_owned() }
+            else if &self.type_ == "wxSize" { "int w, int h".to_owned() }
+            else if &self.type_ == "long" { format!("int {}", &self.name) }
+            else { format!("{} {}", &self.type_, &self.name)  }
+    }
 }
 
 // ---------------------------------------------------
@@ -361,13 +434,19 @@ impl Code {
     }
 
     pub fn end_bracket(&mut self) {
-        self.new_line();
+        if let Some(l) = self.code.last() {
+            if !l.is_empty() && !l.ends_with('}') { self.new_line();}
+        }
         self.dec_indent();
-        self.add_line("{");
+        self.add_line("}");
     }
 
     pub fn test() {
         let mut code = Code::new();
+
+        code.end_bracket();
+        code.end_bracket();
+        code.end_bracket();  
         code.new_line();
         code.add("1");
         code.add("2");
@@ -391,6 +470,13 @@ impl Code {
         code.add_line("c");
         code.add_line("c");
         code.add_line("c");
+        code.start_bracket();
+        code.add("123");
+        code.start_bracket();
+        code.add("123");
+        code.end_bracket();
+        code.end_bracket();
+
         println!("{}", code);
     }
 }
@@ -408,64 +494,76 @@ impl fmt::Display for Code {
 }
 
 // ---------------------------------------------------
-pub fn generate_rust_code(data : &WxCodeData, code : &mut Code) -> Result<(), AppError> {
+pub fn generate_rust_code(data : &WxCodeData, rust_code : &mut Code) -> Result<(), AppError> {
 
     let class = &data.classes[0];
-    let method = &class.methods[1];
+    let method = &class.methods[5];
 
-    code.add(&format!("impl {}", &class.name));
-    code.start_bracket();
+    rust_code.add(&format!("impl {}", &class.name));
+    rust_code.start_bracket();
 
     // function name
-    code.add("pub fn ");
+    rust_code.add("pub fn ");
+    let mut sep = "";
     if method.is_constructor {
-        code.add("create(");
+        rust_code.add("create(");
     }
     else {
-        code.add(&method.name);
-        code.add("(&self, ");
+        rust_code.add(&method.name);
+        rust_code.add("(&self");
+        sep = ", ";
     }
 
-    let mut sep = "";
 
     // function arguments
     for carg in &method.arguments {
 
-        code.add(sep);
+        rust_code.add(sep);
         sep = ", ";
 
-        let rarg = data.arg_translation.get(&carg.type_)
-            .ok_or(AppError::new(&format!("Unknown argument type {}", &carg.type_)))?;
+        rust_code.add(&carg.rust_fn_call_signature());
 
-        code.add(&carg.name);
-        code.add(" : ");
-        if !carg.default_value.is_empty() { code.add("Option<") }
-        if carg.is_ref || carg.is_pointer { code.add("&"); }
-        code.add(&rarg);
-        if !carg.default_value.is_empty() { code.add(">") }
+        // let rarg = data.arg_translation.get(&carg.type_)
+        //     .ok_or(AppError::new(&format!("Unknown argument type {}", &carg.type_)))?;
+
+        // rust_code.add(&carg.name);
+        // rust_code.add(" : ");
+        // if !carg.default_value.is_empty() { rust_code.add("Option<") }
+        // if carg.is_ref || carg.is_pointer { rust_code.add("&"); }
+        // rust_code.add(&rarg);
+        // if !carg.default_value.is_empty() { rust_code.add(">") }
     }
 
-    code.add(") -> retun type");
-    code.start_bracket();
-
+    rust_code.add(") -> retun type");
+    rust_code.start_bracket();
 
     // implementation
-    generate_rust_function_implementation(data, code, &method.arguments, 0, &String::from("call_extern("))?;
+    // the function name suffix _n will get replaced with an index number corresponding
+    // to the different overloads
+    generate_rust_function_implementation(
+        data, 
+        rust_code, 
+        &method.arguments, 
+        0, 
+        &(method.c_export_fn_name() + "_#("),
+        1u8)?;
 
-    println!("{}", code);
-
-
-    code.end_bracket();
+    rust_code.end_bracket();
         
     Ok(())
 }
 
-pub fn generate_rust_function_implementation(data : &WxCodeData, code : &mut Code, arguments : &Vec<Argument>, arg_index : usize, signature : &str) -> Result<(), AppError> {
+pub fn generate_rust_function_implementation(
+    data : &WxCodeData, 
+    rust_code : &mut Code, 
+    arguments : &Vec<Argument>, 
+    arg_index : usize, 
+    signature : &str,
+    opt_index : u8) -> Result<(), AppError> {
 
 /*    
     if let Some(name_) = name {
         frame = wx_frame_create_extern_5(parent_, id, to_cstr!(title), x, y, w, h, style_, to_cstr!(name_));
-                                         ------------------------------------------------   
     }
     else {
         frame = wx_frame_create_extern_4(parent_, id, to_cstr!(title), x, y, w, h, style_);
@@ -475,55 +573,46 @@ pub fn generate_rust_function_implementation(data : &WxCodeData, code : &mut Cod
     let mut line = String::from(signature);
     
     if arg_index >= arguments.len() {
-
-        // add method signature so far
-        code.add(&line);
-        code.add_line(");");     
+        // function call with last argument
+        rust_code.add(&line.replace("_#", &format!("_{}", opt_index)));
+        rust_code.add(");");     
     }
     else {
-        // separator
-        if arg_index > 0 {
-            line += ", ";
-        }
-
         let current_arg = &arguments[arg_index];
 
-        let mut n = if current_arg.has_default() {
+        if current_arg.has_default() {
             // if let Some(arg_) = arg {
-            code.add_line(&format!("if let Some({}_) = {}", &current_arg.name, &current_arg.name));
-            code.start_bracket();
-
-            // argument name with underscore for option types
-            String::from(&current_arg.name) + "_"
-        }
-        else {
-            String::from(&current_arg.name)
-        };
-
-        // strings wrapped in to_cstr!() macro
-        if current_arg.type_ == "wxString" {
-            n = format!("to_cstr!({})", n);
+            rust_code.add(&format!("if let Some({}_) = {}", &current_arg.name, &current_arg.name));
+            rust_code.start_bracket();
         }
 
-        println!("{}{}", line, n);
-        generate_rust_function_implementation(data, code, arguments, arg_index + 1, &(String::from(&line) + &n))?;
+        // format argument for import call to c
+        let l = current_arg.rust_import_call();
 
-        code.end_bracket();
+        // separator
+        let sep = if arg_index > 0 { ", "} else { "" };
+
+        generate_rust_function_implementation(
+            data, 
+            rust_code, 
+            arguments, 
+            arg_index + 1, 
+            &(String::from(&line) + &sep + &l),
+            if current_arg.has_default() { opt_index + 1 } else { opt_index })?;
 
         if current_arg.has_default() {
-            code.dec_indent();
 /*
             }
             else {
                 frame = wx_frame_create_extern_4(parent_, id, to_cstr!(title), x, y, w, h, style_);
             }
 */
-            code.add_line("}");
-            code.add_line("else {");
-            code.inc_indent();
-            code.add(&line);
-            code.add_line(");");
-            code.end_bracket();
+            rust_code.end_bracket();
+            rust_code.add("else");
+            rust_code.start_bracket();
+            rust_code.add(&line.replace("_#", &format!("_{}", opt_index)));
+            rust_code.add(");");
+            rust_code.end_bracket();
         }
     }
     Ok(())

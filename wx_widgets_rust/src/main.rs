@@ -20,6 +20,8 @@ fn main() {
  
     // main_frame::main();
 
+    // wx_code_generator::Code::test();
+
     
     match run() {
         Ok(_) => {},
@@ -27,6 +29,9 @@ fn main() {
             println!("{}", e);
         },
     }
+
+    println!("finished");
+
 }
 
 fn run() -> Result<(), errors::AppError> {
@@ -34,7 +39,6 @@ fn run() -> Result<(), errors::AppError> {
     
     let mut data = wx_code_generator::WxCodeData::default();
     wx_widgets_docs_parser::parse(&mut data)?;
-    println!("{}", data);
     let mut rust_code = wx_code_generator::Code::new();
     wx_code_generator::generate_rust_code(&data, &mut rust_code)?;
     wx_code_generator::update_rust_templates(&data, &rust_code, "wxFrame.rs")?;
